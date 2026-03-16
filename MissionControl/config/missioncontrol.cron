@@ -1,0 +1,14 @@
+# Mission Control Cron Jobs
+# Install with: crontab /Users/harvey/.openclaw/workspace/MissionControl/config/missioncontrol.cron
+
+# Weather Update - Daily 06:00
+0 6 * * * cd /Users/harvey/.openclaw/workspace && bash MissionControl/scripts/fetch-weather.sh > /tmp/mc-weather.log 2>&1
+
+# Health Check - Every 30 minutes
+*/30 * * * * cd /Users/harvey/.openclaw/workspace && bash MissionControl/scripts/check-health.sh > /tmp/mc-health.log 2>&1
+
+# GitHub Status - Hourly
+0 * * * * cd /Users/harvey/.openclaw/workspace && bash MissionControl/scripts/fetch-github.sh > /tmp/mc-github.log 2>&1
+
+# Dashboard Refresh - Daily 07:00
+0 7 * * * cd /Users/harvey/.openclaw/workspace && bash MissionControl/scripts/update-dashboard.sh > /tmp/mc-dashboard.log 2>&1

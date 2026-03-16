@@ -1,0 +1,48 @@
+{
+  "version": "1.0",
+  "modules": {
+    "health": {
+      "enabled": true,
+      "refresh_interval": 1800,
+      "cron": "*/30 * * * *"
+    },
+    "weather": {
+      "enabled": true,
+      "location": "Lucerne,Switzerland",
+      "refresh_interval": 3600,
+      "cron": "0 6 * * *"
+    },
+    "projects": {
+      "enabled": true,
+      "refresh_interval": 3600,
+      "cron": "0 7 * * *"
+    },
+    "tasks": {
+      "enabled": true,
+      "sources": ["memory", "github"],
+      "refresh_interval": 1800
+    },
+    "github": {
+      "enabled": true,
+      "repos": ["Rayze64/therapeuten-plattform"],
+      "refresh_interval": 3600,
+      "cron": "0 * * * *"
+    },
+    "calendar": {
+      "enabled": false,
+      "provider": "ics",
+      "refresh_interval": 3600
+    },
+    "memory": {
+      "enabled": true,
+      "sources": ["memory/PROJECT_MEMORY.md", "memory/2026-03-12.md"],
+      "refresh_interval": 1800
+    }
+  },
+  "dashboard": {
+    "title": "Mission Control Dashboard",
+    "emoji_enabled": true,
+    "auto_refresh": true,
+    "refresh_time": "07:00"
+  }
+}

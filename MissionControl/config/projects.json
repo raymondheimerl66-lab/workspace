@@ -1,0 +1,35 @@
+{
+  "version": "1.0",
+  "last_updated": "",
+  "projects": [
+    {
+      "id": "therapeuten-plattform",
+      "name": "Therapeuten-Plattform CH",
+      "description": "Verwaltungsplattform für Schweizer Therapeuten",
+      "status": "active",
+      "phase": "M1",
+      "milestones": [
+        {"id": "M1", "name": "Problem/Solution Fit", "status": "in_progress", "due": "2026-04-01"},
+        {"id": "M2", "name": "MVP Core", "status": "pending", "due": "2026-05-15"},
+        {"id": "M3", "name": "Admin-Time Killer", "status": "pending", "due": "2026-06-30"}
+      ],
+      "priority": "high",
+      "path": "Projects/therapeuten-plattform.md",
+      "tags": ["ch", "healthcare", "saas"]
+    },
+    {
+      "id": "cal-com-eval",
+      "name": "cal.com Evaluation",
+      "description": "Self-hosting Evaluation für Terminbuchung",
+      "status": "completed",
+      "phase": "Evaluation",
+      "milestones": [
+        {"id": "EVAL1", "name": "Tech-Eval", "status": "completed", "due": "2026-03-11"},
+        {"id": "EVAL2", "name": "Decision", "status": "completed", "due": "2026-03-11"}
+      ],
+      "priority": "medium",
+      "path": "Projects/cal-com-evaluation.md",
+      "tags": ["evaluation", "booking", "open-source"]
+    }
+  ]
+}

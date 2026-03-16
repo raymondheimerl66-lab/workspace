@@ -1,0 +1,31 @@
+#!/bin/bash
+INBOUND=~/.openclaw/media/inbound
+TRANSCRIPTS=~/.openclaw/workspace/memory/transcripts
+TMPDIR=/tmp/audio_conv
+mkdir -p "$TRANSCRIPTS" "$TMPDIR"
+
+for f in "$INBOUND"/*.ogg "$INBOUND"/*.oga "$INBOUND"/*.mp3; do
+  [ -f "$f" ] || continue
+  BASENAME=$(basename "$f" | sed 's/\.[^.]*$//')
+  TRANSCRIPT="$TRANSCRIPTS/$BASENAME.txt"
+  if [ ! -f "$TRANSCRIPT" ]; then
+    echo "🎙️ Transkribiere: $BASENAME"
+    
+    # Convert to WAV for whisper.cpp compatibility
+    WAVFILE="$TMPDIR/$BASENAME.wav"
+    ffmpeg -i "$f" -ar 16000 -ac 1 -c:a pcm_s16le "$WAVFILE" -y 2>/dev/null
+    
+    if [ -f "$WAVFILE" ]; then
+      ~/whisper.cpp/build/bin/whisper-cli \
+        -m ~/whisper.cpp/models/ggml-small.bin \
+        -f "$WAVFILE" -l de --output-txt \
+        -of "$TRANSCRIPTS/$BASENAME" 2>/dev/null
+      rm -f "$WAVFILE"
+    fi
+    
+    if [ -f "$TRANSCRIPT" ]; then
+      TEXT=$(cat "$TRANSCRIPT")
+openclaw message send --channel telegram --target "6244750238" -m "🎙️ Sprachmemo transkribiert: $TEXT"
+    fi
+  fi
+done

@@ -1,0 +1,22 @@
+{
+  "last_updated": "2026-03-16T12:12:40Z",
+  "system": {
+    "hostname": "mini-von-harvey.home",
+    "os": "Darwin",
+    "uptime": "10 days"
+  },
+  "resources": {
+    "cpu_percent": "5.35",
+    "memory_percent": "55",
+    "memory_used_mb": "8245",
+    "memory_total_mb": "14770",
+    "disk_percent": "2",
+    "disk_available": "886Gi",
+    "load_average": "2.23"
+  },
+  "openclaw": {
+    "gateway_status": "unknown",
+    "last_heartbeat": "never"
+  },
+  "status": "healthy"
+}

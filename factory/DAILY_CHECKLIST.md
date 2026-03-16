@@ -1,0 +1,6 @@
+- [ ] Täglich: Dashboard prüfen & aktualisieren
+- [ ] Bei jeder Änderung: In Mission Control loggen
+- [ ] Team-Status halten: Agents, Pulse, CodeBot ready
+- [ ] Ray's Memos: Sofort transkribieren → Tasks
+- [ ] Weekly: Radar, Pipeline, Memory review
+- [ ] Nie vergessen: Changes dokumentieren
