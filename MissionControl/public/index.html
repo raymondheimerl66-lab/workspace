@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mission Control PRO</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <h1><i class="fas fa-rocket"></i> Mission Control <span class="pro-badge">PRO</span></h1>
+                <p class="subtitle">Ray's Kommandozentrale</p>
+            </div>
+            <div class="header-right">
+                <div class="weather-widget" id="weather-widget">
+                    <i class="fas fa-cloud-sun"></i>
+                    <span class="weather-temp">--°C</span>
+                </div>
+                <button class="btn-refresh" id="refresh-btn" title="Dashboard aktualisieren">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="tabs">
+            <button class="tab active" data-tab="dashboard">
+                <i class="fas fa-th-large"></i> Dashboard
+            </button>
+            <button class="tab" data-tab="projects">
+                <i class="fas fa-folder-open"></i> Projekte
+            </button>
+            <button class="tab" data-tab="tasks">
+                <i class="fas fa-tasks"></i> Tasks
+            </button>
+            <button class="tab" data-tab="notes">
+                <i class="fas fa-sticky-note"></i> Notizen
+            </button>
+            <button class="tab" data-tab="github">
+                <i class="fab fa-github"></i> GitHub
+            </button>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Dashboard Tab -->
+            <section class="tab-content active" id="dashboard">
+                <!-- System Status Widget -->
+                <div class="widget system-widget">
+                    <div class="widget-header">
+                        <h3><i class="fas fa-server"></i> System Status</h3>
+                        <span class="status-indicator" id="system-status">Checking...</span>
+                    </div>
+                    <div class="system-stats" id="system-stats">
+                        <div class="stat">
+                            <i class="fas fa-microchip"></i>
+                            <span class="stat-value" id="sys-load">--</span>
+                            <span class="stat-label">Load</span>
+                        </div>
+                        <div class="stat">
+                            <i class="fas fa-memory"></i>
+                            <span class="stat-value" id="sys-memory">--</span>
+                            <span class="stat-label">Memory</span>
+                        </div>
+                        <div class="stat">
+                            <i class="fas fa-hdd"></i>
+                            <span class="stat-value" id="sys-disk">--</span>
+                            <span class="stat-label">Disk</span>
+                        </div>
+                        <div class="stat">
+                            <i class="fas fa-clock"></i>
+                            <span class="stat-value" id="sys-uptime">--</span>
+                            <span class="stat-label">Uptime</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="quick-actions">
+                    <button class="quick-btn" id="add-task-quick">
+                        <i class="fas fa-plus"></i>
+                        <span>Task</span>
+                    </button>
+                    <button class="quick-btn" id="add-note-quick">
+                        <i class="fas fa-sticky-note"></i>
+                        <span>Notiz</span>
+                    </button>
+                    <button class="quick-btn" id="add-project-quick">
+                        <i class="fas fa-folder-plus"></i>
+                        <span>Projekt</span>
+                    </button>
+                    <button class="quick-btn" id="add-event-quick">
+                        <i class="fas fa-calendar-plus"></i>
+                        <span>Event</span>
+                    </button>
+                </div>
+
+                <!-- Active Projects Preview -->
+                <div class="widget">
+                    <div class="widget-header">
+                        <h3><i class="fas fa-rocket"></i> Aktive Projekte</h3>
+                        <a href="#" class="view-all" data-tab="projects">Alle anzeigen</a>
+                    </div>
+                    <div class="projects-preview" id="projects-preview"></div>
+                </div>
+
+                <!-- Recent Tasks -->
+                <div class="widget">
+                    <div class="widget-header">
+                        <h3><i class="fas fa-check-circle"></i> Offene Tasks</h3>
+                        <div class="task-filters">
+                            <button class="filter-btn active" data-filter="all">Alle</button>
+                            <button class="filter-btn" data-filter="todo">Todo</button>
+                            <button class="filter-btn" data-filter="in_progress">In Progress</button>
+                        </div>
+                    </div>
+                    <div class="tasks-list" id="dashboard-tasks"></div>
+                </div>
+
+                <!-- Events -->
+                <div class="widget">
+                    <div class="widget-header">
+                        <h3><i class="fas fa-calendar-alt"></i> Kommende Events</h3>
+                    </div>
+                    <div class="events-list" id="events-list"></div>
+                </div>
+            </section>
+
+            <!-- Projects Tab -->
+            <section class="tab-content" id="projects">
+                <div class="section-header">
+                    <h2><i class="fas fa-folder-open"></i> Projekte</h2>
+                    <button class="btn-primary" id="add-project-btn">
+                        <i class="fas fa-plus"></i> Neues Projekt
+                    </button>
+                </div>
+                <div class="projects-grid" id="projects-grid"></div>
+            </section>
+
+            <!-- Tasks Tab -->
+            <section class="tab-content" id="tasks">
+                <div class="section-header">
+                    <h2><i class="fas fa-tasks"></i> Tasks</h2>
+                    <button class="btn-primary" id="add-task-btn">
+                        <i class="fas fa-plus"></i> Neuer Task
+                    </button>
+                </div>
+                <div class="tasks-controls">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="task-search" placeholder="Tasks suchen...">
+                    </div>
+                    <div class="filter-group">
+                        <select id="task-project-filter">
+                            <option value="">Alle Projekte</option>
+                        </select>
+                        <select id="task-status-filter">
+                            <option value="">Alle Status</option>
+                            <option value="todo">Todo</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="done">Done</option>
+                            <option value="blocked">Blocked</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="tasks-list full" id="tasks-list"></div>
+            </section>
+
+            <!-- Notes Tab -->
+            <section class="tab-content" id="notes">
+                <div class="section-header">
+                    <h2><i class="fas fa-sticky-note"></i> Notizen</h2>
+                    <button class="btn-primary" id="add-note-btn">
+                        <i class="fas fa-plus"></i> Neue Notiz
+                    </button>
+                </div>
+                <div class="notes-board" id="notes-board"></div>
+            </section>
+
+            <!-- GitHub Tab -->
+            <section class="tab-content" id="github">
+                <div class="section-header">
+                    <h2><i class="fab fa-github"></i> GitHub</h2>
+                    <span class="repo-name" id="github-repo">--</span>
+                </div>
+                <div class="github-grid">
+                    <div class="widget">
+                        <div class="widget-header">
+                            <h3><i class="fas fa-exclamation-circle"></i> Open Issues</h3>
+                        </div>
+                        <div class="github-list" id="github-issues"></div>
+                    </div>
+                    <div class="widget">
+                        <div class="widget-header">
+                            <h3><i class="fas fa-code-branch"></i> Pull Requests</h3>
+                        </div>
+                        <div class="github-list" id="github-prs"></div>
+                    </div>
+                    <div class="widget full-width">
+                        <div class="widget-header">
+                            <h3><i class="fas fa-code-commit"></i> Recent Commits (7 Tage)</h3>
+                        </div>
+                        <div class="github-list" id="github-commits"></div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal" id="task-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="task-modal-title">Neuer Task</h3>
+                <button class="modal-close"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="task-form">
+                <input type="hidden" id="task-id">
+                <div class="form-group">
+                    <label>Title</label>
+                    <input type="text" id="task-title" required>
+                </div>
+                <div class="form-group">
+                    <label>Beschreibung</label>
+                    <textarea id="task-description" rows="3"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="task-status">
+                            <option value="todo">Todo</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="done">Done</option>
+                            <option value="blocked">Blocked</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Priorität</label>
+                        <select id="task-priority">
+                            <option value="1">1 - Critical</option>
+                            <option value="2">2 - High</option>
+                            <option value="3" selected>3 - Medium</option>
+                            <option value="4">4 - Low</option>
+                            <option value="5">5 - Nice to have</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Projekt</label>
+                    <select id="task-project"></select>
+                </div>
+                <div class="form-group">
+                    <label>Deadline</label>
+                    <input type="date" id="task-due-date">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary modal-close">Abbrechen</button>
+                    <button type="submit" class="btn-primary">Speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="project-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="project-modal-title">Neues Projekt</h3>
+                <button class="modal-close"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="project-form">
+                <input type="hidden" id="project-id">
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" id="project-name" required>
+                </div>
+                <div class="form-group">
+                    <label>Beschreibung</label>
+                    <textarea id="project-description" rows="3"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Phase</label>
+                        <input type="text" id="project-phase" placeholder="z.B. M1: Foundation">
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="project-status">
+                            <option value="not_started">Not Started</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="blocked">Blocked</option>
+                            <option value="done">Done</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Priorität</label>
+                        <select id="project-priority">
+                            <option value="1">1 - Critical</option>
+                            <option value="2">2 - High</option>
+                            <option value="3" selected>3 - Medium</option>
+                            <option value="4">4 - Low</option>
+                            <option value="5">5 - Nice to have</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Deadline</label>
+                        <input type="date" id="project-deadline">
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary modal-close">Abbrechen</button>
+                    <button type="submit" class="btn-primary">Speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="note-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Neue Notiz</h3>
+                <button class="modal-close"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="note-form">
+                <div class="form-group">
+                    <label>Notiz</label>
+                    <textarea id="note-content" rows="4" required></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Kategorie</label>
+                        <select id="note-category">
+                            <option value="ideas">Ideen</option>
+                            <option value="meeting">Meeting</option>
+                            <option value="random">Random</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Farbe</label>
+                        <select id="note-color">
+                            <option value="yellow">Gelb</option>
+                            <option value="blue">Blau</option>
+                            <option value="green">Grün</option>
+                            <option value="pink">Pink</option>
+                            <option value="purple">Lila</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary modal-close">Abbrechen</button>
+                    <button type="submit" class="btn-primary">Speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="/app.js"></script>
+</body>
+</html>

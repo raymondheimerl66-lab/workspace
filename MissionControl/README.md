@@ -1,73 +1,127 @@
-# 🎯 Mission Control Dashboard
+# 🎯 Mission Control PRO
 
-Live dashboard for system health, projects, tasks, and memory. Central hub to manage the Therapeuten-Plattform project and internal operations.
+Ray's Kommandozentrale - Ein voll funktionsfähiges, interaktives Dashboard für Projektmanagement.
 
-## 📁 Structure
+## Features
 
-```
-MissionControl/
-├── README.md              # This file
-├── dashboard.md           # Live dashboard (auto-generated)
-├── config/
-│   ├── projects.json      # Project definitions
-│   └── modules.json       # Active modules & settings
-├── data/                  # Auto-generated data files
-│   ├── weather.json
-│   ├── health.json
-│   └── github.json
-├── scripts/               # Update scripts
-│   ├── update-dashboard.sh    # Main refresh
-│   ├── fetch-weather.sh       # Weather data
-│   ├── check-health.sh        # System health
-│   └── fetch-github.sh        # GitHub status
-└── templates/
-    └── dashboard.template.md  # Template
-```
+### Dashboard
+- **System Status** - Live System-Metriken (Load, Memory, Disk, Uptime)
+- **Wetter Widget** - Aktuelles Wetter für Luzern
+- **Quick Actions** - Schnelles Erstellen von Tasks, Notizen, Projekten
 
-## 🔄 Auto-Refresh Schedule
+### Projekte
+- Übersicht aller Projekte mit Status
+- Milestone-Tracking mit Fortschrittsbalken
+- Priorisierung (1-5)
+- Deadline-Tracking
 
-| Script | Schedule | Cron |
-|--------|----------|------|
-| Weather | Daily 06:00 | `0 6 * * *` |
-| GitHub | Hourly | `0 * * * *` |
-| Health | Every 30 min | `*/30 * * * *` |
-| Dashboard | Daily 07:00 | `0 7 * * *` |
+### Tasks
+- Interaktive Task-Liste mit Checkboxes
+- Filter nach Status und Projekt
+- Suchfunktion
+- Drag & Drop (vorbereitet)
+- Prioritäten und Deadlines
 
-## 🚀 Quick Start
+### Notizen
+- Post-it Style Notiz-Board
+- Kategorien: Ideen, Meeting, Random
+- Farbige Notizen
 
-### Manual Refresh
+### GitHub Integration
+- Live Issues aus dem Repository
+- Pull Requests
+- Recent Commits (letzte 7 Tage)
+
+### Events
+- Kommende Termine und Deadlines
+- Kalender-View mit Datum
+
+## API Endpunkte
+
+| Methode | Endpoint | Beschreibung |
+|---------|----------|--------------|
+| GET | `/api/health` | System Health Status |
+| GET | `/api/weather` | Aktuelles Wetter |
+| GET | `/api/github` | GitHub Issues/PRs/Commits |
+| GET | `/api/projects` | Alle Projekte |
+| POST | `/api/projects` | Neues Projekt |
+| PUT | `/api/projects/:id` | Projekt aktualisieren |
+| GET | `/api/tasks` | Alle Tasks |
+| POST | `/api/tasks` | Neuer Task |
+| PUT | `/api/tasks/:id` | Task aktualisieren |
+| DELETE | `/api/tasks/:id` | Task löschen |
+| GET | `/api/notes` | Alle Notizen |
+| POST | `/api/notes` | Neue Notiz |
+| DELETE | `/api/notes/:id` | Notiz löschen |
+| GET | `/api/events` | Alle Events |
+| POST | `/api/events` | Neues Event |
+| GET | `/api/settings` | Alle Settings |
+| PUT | `/api/settings/:key` | Setting aktualisieren |
+| POST | `/api/update-dashboard` | Cache leeren & refresh |
+
+## Installation
+
 ```bash
-# Full dashboard update
-bash MissionControl/scripts/update-dashboard.sh
+# Dependencies installieren
+npm install
 
-# Individual modules
-bash MissionControl/scripts/fetch-weather.sh
-bash MissionControl/scripts/check-health.sh
-bash MissionControl/scripts/fetch-github.sh
+# Datenbank initialisieren
+npm run init-db
+
+# Server starten
+npm start
 ```
 
-### View Dashboard
+## Environment Variables
+
 ```bash
-cat MissionControl/dashboard.md
+# Für Railway Deployment
+GITHUB_TOKEN=ghp_xxx
+GITHUB_REPO=Rayze64/therapeuten-plattform
+WEATHER_LOCATION=Luzern,CH
+PORT=3000
 ```
 
-## 📝 Modules
+## Datenbank Schema
 
-- **🏥 Health** - System metrics (CPU, memory, disk, OpenClaw gateway)
-- **🌤️ Weather** - Current weather for Luzern
-- **📁 Projects** - Active project status from config
-- **✅ Tasks** - Today's priorities and inbox
-- **🐙 GitHub** - Issues, PRs, notifications
-- **🧠 Memory** - Recent memory entries
-- **🚀 Quick Actions** - Common commands
+SQLite Datenbank mit folgenden Tabellen:
+- `tasks` - Aufgaben mit Status, Priorität, Projekt
+- `projects` - Projekte mit Milestones (JSON)
+- `notes` - Notizen mit Kategorien
+- `events` - Termine und Deadlines
+- `settings` - Konfiguration
 
-## ⚙️ Configuration
+## Deployment auf Railway
 
-Edit `config/modules.json` to enable/disable modules.
-Edit `config/projects.json` to add/modify projects.
+1. Repository verbinden
+2. Environment Variables setzen
+3. Deploy
 
-## 🔗 Integration
+Die App läuft dann unter: `https://missioncontrol-pro.up.railway.app`
 
-- Reads from `/memory/` for daily notes
-- Reads from `/Projects/` for project files
-- Updates via `HEARTBEAT.md` routine
+## Testing
+
+```bash
+# Health Check
+curl https://missioncontrol-pro.up.railway.app/api/health
+
+# Alle Tasks
+curl https://missioncontrol-pro.up.railway.app/api/tasks
+
+# Neuer Task
+curl -X POST https://missioncontrol-pro.up.railway.app/api/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Test Task","priority":1}'
+```
+
+## Tech Stack
+
+- **Backend**: Node.js + Express
+- **Database**: SQLite (better-sqlite3)
+- **Frontend**: Vanilla JavaScript + CSS
+- **Icons**: FontAwesome 6
+- **Font**: Inter (Google Fonts)
+
+## Lizenz
+
+MIT

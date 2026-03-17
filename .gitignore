@@ -1,0 +1,3 @@
+node_modules/
+MissionControl/node_modules/
+MissionControl/db/*.sqlite

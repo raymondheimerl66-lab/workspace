@@ -10,10 +10,10 @@ const app = express();
 
 // Middleware
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'MissionControl', 'public')));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Database connection
-const DB_PATH = path.join(__dirname, 'MissionControl', 'db', 'database.sqlite');
+const DB_PATH = path.join(__dirname, 'db', 'database.sqlite');
 let db;
 
 function getDb() {
@@ -387,7 +387,7 @@ app.put('/api/settings/:key', (req, res) => {
 
 // Serve the dashboard
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'MissionControl', 'public', 'index.html'));
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // ==================== SERVER START ====================
@@ -395,7 +395,7 @@ app.get('/', (req, res) => {
 const PORT = process.env.PORT || 3000;
 
 // Initialize database on startup
-const { initDatabase } = require('./MissionControl/db/init');
+const { initDatabase } = require('./db/init');
 initDatabase();
 
 app.listen(PORT, () => {

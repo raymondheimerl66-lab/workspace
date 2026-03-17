@@ -1,0 +1,304 @@
+/* CSS continued */
+.note-card {
+    padding: 16px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    position: relative;
+    min-height: 150px;
+}
+
+.note-card.yellow { background: linear-gradient(135deg, rgba(210, 153, 34, 0.15), rgba(210, 153, 34, 0.05)); border-color: rgba(210, 153, 34, 0.3); }
+.note-card.blue { background: linear-gradient(135deg, rgba(88, 166, 255, 0.15), rgba(88, 166, 255, 0.05)); border-color: rgba(88, 166, 255, 0.3); }
+.note-card.green { background: linear-gradient(135deg, rgba(63, 185, 80, 0.15), rgba(63, 185, 80, 0.05)); border-color: rgba(63, 185, 80, 0.3); }
+.note-card.pink { background: linear-gradient(135deg, rgba(219, 97, 162, 0.15), rgba(219, 97, 162, 0.05)); border-color: rgba(219, 97, 162, 0.3); }
+.note-card.purple { background: linear-gradient(135deg, rgba(137, 87, 229, 0.15), rgba(137, 87, 229, 0.05)); border-color: rgba(137, 87, 229, 0.3); }
+
+.note-content { font-size: 14px; line-height: 1.6; margin-bottom: 12px; word-wrap: break-word; }
+
+.note-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.note-category {
+    text-transform: uppercase;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.note-delete {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    opacity: 0;
+    transition: var(--transition);
+}
+
+.note-card:hover .note-delete { opacity: 1; }
+.note-delete:hover { color: var(--danger); }
+
+/* Events List */
+.events-list { padding: 0 20px 20px; }
+
+.event-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    margin-bottom: 8px;
+}
+
+.event-date {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: var(--bg-secondary);
+    padding: 8px 14px;
+    border-radius: var(--radius-md);
+    min-width: 60px;
+}
+
+.event-day { font-size: 20px; font-weight: 700; color: var(--accent-blue); }
+.event-month { font-size: 11px; text-transform: uppercase; color: var(--text-secondary); }
+
+.event-content { flex: 1; }
+.event-title { font-weight: 500; margin-bottom: 4px; }
+.event-meta { font-size: 12px; color: var(--text-muted); }
+
+.event-type {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.event-type.event { background: rgba(88, 166, 255, 0.2); color: var(--accent-blue); }
+.event-type.deadline { background: rgba(248, 81, 73, 0.2); color: var(--danger); }
+.event-type.milestone { background: rgba(137, 87, 229, 0.2); color: var(--accent-purple); }
+
+/* GitHub */
+.repo-name {
+    background: var(--bg-tertiary);
+    padding: 6px 14px;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.github-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+.github-grid .full-width { grid-column: 1 / -1; }
+
+.github-list { padding: 0 20px 20px; }
+
+.github-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    margin-bottom: 8px;
+}
+
+.github-item i { color: var(--accent-blue); margin-top: 2px; }
+.github-item.issue i { color: var(--accent-green); }
+.github-item.pr i { color: var(--accent-purple); }
+.github-item.commit i { color: var(--text-muted); font-size: 12px; }
+
+.github-content { flex: 1; min-width: 0; }
+.github-title {
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.github-title a { color: var(--text-primary); text-decoration: none; }
+.github-title a:hover { color: var(--accent-blue); text-decoration: underline; }
+
+.github-meta { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+.github-number {
+    font-size: 12px;
+    color: var(--text-muted);
+    background: var(--bg-secondary);
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-muted);
+}
+
+.empty-state i { font-size: 48px; margin-bottom: 16px; display: block; }
+
+/* Modals */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.active { display: flex; }
+
+.modal-content {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow: hidden;
+    animation: modalSlide 0.2s ease;
+}
+
+@keyframes modalSlide {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-tertiary);
+}
+
+.modal-header h3 { font-size: 16px; font-weight: 600; }
+
+.modal-close {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 18px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.modal-close:hover { color: var(--text-primary); }
+
+.modal form { padding: 20px; }
+
+.form-group { margin-bottom: 16px; }
+.form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 10px 12px;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    font-family: inherit;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-color);
+}
+
+/* Toasts */
+.toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1001;
+}
+
+.toast {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 14px 20px;
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: var(--shadow);
+    animation: toastSlide 0.3s ease;
+}
+
+@keyframes toastSlide {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.toast.success { border-color: var(--success); }
+.toast.error { border-color: var(--danger); }
+.toast i { font-size: 18px; }
+.toast.success i { color: var(--success); }
+.toast.error i { color: var(--danger); }
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .system-stats { grid-template-columns: repeat(2, 1fr); }
+    .quick-actions { grid-template-columns: repeat(2, 1fr); }
+    .github-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+    .app { padding: 12px; }
+    .header { flex-direction: column; align-items: flex-start; gap: 16px; }
+    .tabs { flex-wrap: wrap; }
+    .tab { flex: 1; min-width: 120px; justify-content: center; }
+    .system-stats { grid-template-columns: 1fr; }
+    .quick-actions { grid-template-columns: 1fr; }
+    .tasks-controls { flex-direction: column; }
+    .filter-group { width: 100%; }
+    .filter-group select { flex: 1; }
+    .projects-preview, .projects-grid { grid-template-columns: 1fr; }
+    .form-row { grid-template-columns: 1fr; }
+}
