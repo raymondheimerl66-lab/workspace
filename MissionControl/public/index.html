@@ -1,351 +1,501 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0f172a">
     <title>Mission Control PRO</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.3); border-radius: 3px; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); }
+        .glass-card { background: linear-gradient(135deg, rgba(30,41,59,0.9), rgba(15,23,42,0.95)); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.06); }
+        .glass-highlight { background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(139,92,246,0.1)); border: 1px solid rgba(59,130,246,0.2); }
+        .gradient-text { background: linear-gradient(135deg, #3b82f6, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .hover-lift { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .hover-lift:hover { transform: translateY(-2px); box-shadow: 0 10px 40px -10px rgba(0,0,0,0.5); }
+        .kanban-column { min-height: 200px; }
+        .kanban-column.drag-over { background: rgba(59,130,246,0.08); }
+        .kanban-card { cursor: grab; }
+        .kanban-card:active { cursor: grabbing; }
+        .custom-checkbox { width: 20px; height: 20px; border: 2px solid rgba(148,163,184,0.4); border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+        .custom-checkbox:hover { border-color: #3b82f6; }
+        .custom-checkbox.checked { background: linear-gradient(135deg, #3b82f6, #8b5cf6); border-color: transparent; }
+        .command-palette { position: fixed; inset: 0; z-index: 9999; display: none; align-items: flex-start; justify-content: center; padding-top: 100px; background: rgba(2,6,23,0.8); backdrop-filter: blur(8px); }
+        .command-palette.active { display: flex; }
+        .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 10000; display: flex; flex-direction: column; gap: 8px; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: rgba(255,255,255,0.05); border-radius: 12px; overflow: hidden; }
+        .calendar-day { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(30,41,59,0.8); cursor: pointer; transition: all 0.15s; position: relative; }
+        .calendar-day:hover { background: rgba(59,130,246,0.15); }
+        .calendar-day.today { background: rgba(59,130,246,0.25); font-weight: 600; }
+        .calendar-day.has-event::after { content: ''; position: absolute; bottom: 4px; width: 4px; height: 4px; background: #3b82f6; border-radius: 50%; }
+        .skeleton { background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 4px; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+        .status-online { background: #22c55e; box-shadow: 0 0 8px #22c55e; }
+        .status-offline { background: #ef4444; }
+        @media (max-width: 768px) { .sidebar { display: none; } .mobile-nav { display: flex; } .main-content { padding-bottom: 80px; } }
+        @media (min-width: 769px) { .mobile-nav { display: none; } }
+    </style>
 </head>
-<body>
-    <div class="app">
-        <!-- Header -->
-        <header class="header">
-            <div class="header-left">
-                <h1><i class="fas fa-rocket"></i> Mission Control <span class="pro-badge">PRO</span></h1>
-                <p class="subtitle">Ray's Kommandozentrale</p>
+<body class="bg-slate-950 text-slate-200 font-sans antialiased selection:bg-blue-500/30">
+    
+    <!-- Command Palette -->
+    <div id="command-palette" class="command-palette" onclick="closeCommandPalette(event)">
+        <div class="glass-card w-full max-w-2xl mx-4 rounded-xl overflow-hidden" onclick="event.stopPropagation()">
+            <div class="p-4 border-b border-white/10 flex items-center gap-3">
+                <i class="fas fa-search text-slate-400"></i>
+                <input type="text" id="command-input" placeholder="Suchen oder Befehl ausführen..." class="flex-1 bg-transparent border-none outline-none text-lg text-slate-100 placeholder-slate-500" oninput="searchCommand()">
+                <span class="px-2 py-1 text-xs bg-slate-800 rounded text-slate-400">ESC</span>
             </div>
-            <div class="header-right">
-                <div class="weather-widget" id="weather-widget">
-                    <i class="fas fa-cloud-sun"></i>
-                    <span class="weather-temp">--°C</span>
-                </div>
-                <button class="btn-refresh" id="refresh-btn" title="Dashboard aktualisieren">
-                    <i class="fas fa-sync-alt"></i>
-                </button>
-            </div>
-        </header>
+            <div id="command-results" class="max-h-96 overflow-y-auto p-2"></div>
+        </div>
+    </div>
 
-        <!-- Navigation Tabs -->
-        <nav class="tabs">
-            <button class="tab active" data-tab="dashboard">
-                <i class="fas fa-th-large"></i> Dashboard
-            </button>
-            <button class="tab" data-tab="projects">
-                <i class="fas fa-folder-open"></i> Projekte
-            </button>
-            <button class="tab" data-tab="tasks">
-                <i class="fas fa-tasks"></i> Tasks
-            </button>
-            <button class="tab" data-tab="notes">
-                <i class="fas fa-sticky-note"></i> Notizen
-            </button>
-            <button class="tab" data-tab="github">
-                <i class="fab fa-github"></i> GitHub
-            </button>
-        </nav>
+    <!-- Main App -->
+    <div class="flex h-screen overflow-hidden">
+        
+        <!-- Sidebar -->
+        <aside class="sidebar w-64 bg-slate-900/95 border-r border-white/5 flex flex-col backdrop-blur-xl">
+            <div class="p-4 border-b border-white/5">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+                        <i class="fas fa-rocket text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-semibold text-slate-100">Mission Control</h1>
+                        <span class="text-xs text-slate-500">PRO</span>
+                    </div>
+                </div>
+            </div>
+            
+            <nav class="flex-1 p-3 space-y-1 overflow-y-auto">
+                <button onclick="switchTab('dashboard')" data-tab="dashboard" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-100 hover:bg-white/5 transition-all group active">
+                    <i class="fas fa-th-large text-lg group-hover:text-blue-400 transition-colors"></i>
+                    <span>Dashboard</span>
+                </button>
+                <button onclick="switchTab('tasks')" data-tab="tasks" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-100 hover:bg-white/5 transition-all group">
+                    <i class="fas fa-check-circle text-lg group-hover:text-purple-400 transition-colors"></i>
+                    <span>Tasks</span>
+                    <span id="nav-task-count" class="ml-auto px-2 py-0.5 text-xs bg-blue-500/20 text-blue-400 rounded-full hidden">0</span>
+                </button>
+                <button onclick="switchTab('projects')" data-tab="projects" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-100 hover:bg-white/5 transition-all group">
+                    <i class="fas fa-folder text-lg group-hover:text-pink-400 transition-colors"></i>
+                    <span>Projekte</span>
+                </button>
+                <button onclick="switchTab('calendar')" data-tab="calendar" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-100 hover:bg-white/5 transition-all group">
+                    <i class="fas fa-calendar text-lg group-hover:text-green-400 transition-colors"></i>
+                    <span>Kalender</span>
+                </button>
+                <button onclick="switchTab('notes')" data-tab="notes" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-100 hover:bg-white/5 transition-all group">
+                    <i class="fas fa-sticky-note text-lg group-hover:text-amber-400 transition-colors"></i>
+                    <span>Notizen</span>
+                </button>
+                <button onclick="switchTab('github')" data-tab="github" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-100 hover:bg-white/5 transition-all group">
+                    <i class="fab fa-github text-lg group-hover:text-slate-200 transition-colors"></i>
+                    <span>GitHub</span>
+                </button>
+            </nav>
+            
+            <div class="p-3 border-t border-white/5 space-y-2">
+                <div class="glass p-3 rounded-lg">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <i id="weather-icon" class="fas fa-cloud-sun text-xl text-blue-400"></i>
+                            <span id="weather-temp" class="text-lg font-semibold">--°</span>
+                        </div>
+                        <span id="weather-desc" class="text-xs text-slate-500">--</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 text-xs text-slate-500 px-2">
+                    <span class="status-dot status-online" id="system-status-dot"></span>
+                    <span id="system-status-text">System Online</span>
+                </div>
+            </div>
+        </aside>
 
         <!-- Main Content -->
-        <main class="main-content">
-            <!-- Dashboard Tab -->
-            <section class="tab-content active" id="dashboard">
-                <!-- System Status Widget -->
-                <div class="widget system-widget">
-                    <div class="widget-header">
-                        <h3><i class="fas fa-server"></i> System Status</h3>
-                        <span class="status-indicator" id="system-status">Checking...</span>
-                    </div>
-                    <div class="system-stats" id="system-stats">
-                        <div class="stat">
-                            <i class="fas fa-microchip"></i>
-                            <span class="stat-value" id="sys-load">--</span>
-                            <span class="stat-label">Load</span>
-                        </div>
-                        <div class="stat">
-                            <i class="fas fa-memory"></i>
-                            <span class="stat-value" id="sys-memory">--</span>
-                            <span class="stat-label">Memory</span>
-                        </div>
-                        <div class="stat">
-                            <i class="fas fa-hdd"></i>
-                            <span class="stat-value" id="sys-disk">--</span>
-                            <span class="stat-label">Disk</span>
-                        </div>
-                        <div class="stat">
-                            <i class="fas fa-clock"></i>
-                            <span class="stat-value" id="sys-uptime">--</span>
-                            <span class="stat-label">Uptime</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Quick Actions -->
-                <div class="quick-actions">
-                    <button class="quick-btn" id="add-task-quick">
-                        <i class="fas fa-plus"></i>
-                        <span>Task</span>
+        <main class="flex-1 flex flex-col min-w-0 bg-slate-950">
+            
+            <!-- Header -->
+            <header class="h-16 border-b border-white/5 flex items-center justify-between px-6 bg-slate-900/50 backdrop-blur-sm">
+                <div class="flex items-center gap-4">
+                    <button class="lg:hidden p-2 rounded-lg hover:bg-white/5 text-slate-400">
+                        <i class="fas fa-bars text-xl"></i>
                     </button>
-                    <button class="quick-btn" id="add-note-quick">
-                        <i class="fas fa-sticky-note"></i>
-                        <span>Notiz</span>
-                    </button>
-                    <button class="quick-btn" id="add-project-quick">
-                        <i class="fas fa-folder-plus"></i>
-                        <span>Projekt</span>
-                    </button>
-                    <button class="quick-btn" id="add-event-quick">
-                        <i class="fas fa-calendar-plus"></i>
-                        <span>Event</span>
-                    </button>
+                    <nav id="breadcrumbs" class="hidden sm:flex items-center gap-2 text-sm text-slate-500">
+                        <span class="text-slate-300">Dashboard</span>
+                    </nav>
                 </div>
-
-                <!-- Active Projects Preview -->
-                <div class="widget">
-                    <div class="widget-header">
-                        <h3><i class="fas fa-rocket"></i> Aktive Projekte</h3>
-                        <a href="#" class="view-all" data-tab="projects">Alle anzeigen</a>
-                    </div>
-                    <div class="projects-preview" id="projects-preview"></div>
-                </div>
-
-                <!-- Recent Tasks -->
-                <div class="widget">
-                    <div class="widget-header">
-                        <h3><i class="fas fa-check-circle"></i> Offene Tasks</h3>
-                        <div class="task-filters">
-                            <button class="filter-btn active" data-filter="all">Alle</button>
-                            <button class="filter-btn" data-filter="todo">Todo</button>
-                            <button class="filter-btn" data-filter="in_progress">In Progress</button>
-                        </div>
-                    </div>
-                    <div class="tasks-list" id="dashboard-tasks"></div>
-                </div>
-
-                <!-- Events -->
-                <div class="widget">
-                    <div class="widget-header">
-                        <h3><i class="fas fa-calendar-alt"></i> Kommende Events</h3>
-                    </div>
-                    <div class="events-list" id="events-list"></div>
-                </div>
-            </section>
-
-            <!-- Projects Tab -->
-            <section class="tab-content" id="projects">
-                <div class="section-header">
-                    <h2><i class="fas fa-folder-open"></i> Projekte</h2>
-                    <button class="btn-primary" id="add-project-btn">
-                        <i class="fas fa-plus"></i> Neues Projekt
-                    </button>
-                </div>
-                <div class="projects-grid" id="projects-grid"></div>
-            </section>
-
-            <!-- Tasks Tab -->
-            <section class="tab-content" id="tasks">
-                <div class="section-header">
-                    <h2><i class="fas fa-tasks"></i> Tasks</h2>
-                    <button class="btn-primary" id="add-task-btn">
-                        <i class="fas fa-plus"></i> Neuer Task
-                    </button>
-                </div>
-                <div class="tasks-controls">
-                    <div class="search-box">
+                <div class="flex items-center gap-3">
+                    <button onclick="openCommandPalette()" class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 text-sm transition-colors">
                         <i class="fas fa-search"></i>
-                        <input type="text" id="task-search" placeholder="Tasks suchen...">
-                    </div>
-                    <div class="filter-group">
-                        <select id="task-project-filter">
-                            <option value="">Alle Projekte</option>
-                        </select>
-                        <select id="task-status-filter">
-                            <option value="">Alle Status</option>
-                            <option value="todo">Todo</option>
-                            <option value="in_progress">In Progress</option>
-                            <option value="done">Done</option>
-                            <option value="blocked">Blocked</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="tasks-list full" id="tasks-list"></div>
-            </section>
-
-            <!-- Notes Tab -->
-            <section class="tab-content" id="notes">
-                <div class="section-header">
-                    <h2><i class="fas fa-sticky-note"></i> Notizen</h2>
-                    <button class="btn-primary" id="add-note-btn">
-                        <i class="fas fa-plus"></i> Neue Notiz
+                        <span>Suchen...</span>
+                        <span class="ml-2 px-1.5 py-0.5 text-xs bg-slate-700 rounded">⌘K</span>
+                    </button>
+                    <button onclick="refreshAll()" id="refresh-btn" class="p-2 rounded-lg hover:bg-white/5 text-slate-400 hover:text-slate-200 transition-colors" title="Aktualisieren">
+                        <i class="fas fa-sync-alt text-xl"></i>
+                    </button>
+                    <button onclick="showQuickAdd()" class="p-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-colors shadow-lg shadow-blue-500/25">
+                        <i class="fas fa-plus text-xl"></i>
                     </button>
                 </div>
-                <div class="notes-board" id="notes-board"></div>
-            </section>
+            </header>
 
-            <!-- GitHub Tab -->
-            <section class="tab-content" id="github">
-                <div class="section-header">
-                    <h2><i class="fab fa-github"></i> GitHub</h2>
-                    <span class="repo-name" id="github-repo">--</span>
+            <!-- Content -->
+            <div id="content-area" class="flex-1 overflow-y-auto p-6">
+                
+                <!-- DASHBOARD -->
+                <div id="tab-dashboard" class="tab-content space-y-6">
+                    <div class="glass-highlight rounded-2xl p-6 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+                        <div class="relative">
+                            <h2 id="welcome-text" class="text-2xl font-semibold mb-2">Guten Morgen, Ray!</h2>
+                            <p class="text-slate-400">Hier ist deine Übersicht für heute.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="glass-card p-4 rounded-xl hover-lift">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                                    <i class="fas fa-check-circle text-blue-400 text-xl"></i>
+                                </div>
+                                <span class="text-xs text-slate-500">Offen</span>
+                            </div>
+                            <div id="stat-open-tasks" class="text-2xl font-bold">--</div>
+                            <div class="text-xs text-slate-500 mt-1">Tasks</div>
+                        </div>
+                        <div class="glass-card p-4 rounded-xl hover-lift">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                                    <i class="fas fa-folder text-purple-400 text-xl"></i>
+                                </div>
+                                <span class="text-xs text-slate-500">Aktiv</span>
+                            </div>
+                            <div id="stat-active-projects" class="text-2xl font-bold">--</div>
+                            <div class="text-xs text-slate-500 mt-1">Projekte</div>
+                        </div>
+                        <div class="glass-card p-4 rounded-xl hover-lift">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center">
+                                    <i class="fas fa-exclamation-triangle text-red-400 text-xl"></i>
+                                </div>
+                                <span class="text-xs text-slate-500">Diese Woche</span>
+                            </div>
+                            <div id="stat-deadlines" class="text-2xl font-bold">--</div>
+                            <div class="text-xs text-slate-500 mt-1">Deadlines</div>
+                        </div>
+                        <div class="glass-card p-4 rounded-xl hover-lift">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
+                                    <i class="fas fa-chart-line text-green-400 text-xl"></i>
+                                </div>
+                                <span class="text-xs text-slate-500">Fortschritt</span>
+                            </div>
+                            <div id="stat-progress" class="text-2xl font-bold">--%</div>
+                            <div class="text-xs text-slate-500 mt-1">Erledigt</div>
+                        </div>
+                    </div>
+                    
+                    <div class="grid lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-2 glass-card rounded-2xl p-6">
+                            <div class="flex items-center justify-between mb-6">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center">
+                                        <i class="fas fa-microchip text-blue-400 text-xl"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-semibold text-slate-100">System Status</h3>
+                                        <p class="text-xs text-slate-500">Live-Monitoring</p>
+                                    </div>
+                                </div>
+                                <span class="flex items-center gap-2 text-xs text-green-400">
+                                    <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                                    Live
+                                </span>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+                                <div class="p-4 rounded-xl bg-slate-800/50">
+                                    <div class="text-xs text-slate-500 mb-1">CPU Load</div>
+                                    <div id="sys-load" class="text-xl font-mono font-semibold">--</div>
+                                </div>
+                                <div class="p-4 rounded-xl bg-slate-800/50">
+                                    <div class="text-xs text-slate-500 mb-1">Memory</div>
+                                    <div id="sys-memory" class="text-xl font-mono font-semibold">--</div>
+                                </div>
+                                <div class="p-4 rounded-xl bg-slate-800/50">
+                                    <div class="text-xs text-slate-500 mb-1">Disk</div>
+                                    <div id="sys-disk" class="text-xl font-mono font-semibold">--</div>
+                                </div>
+                                <div class="p-4 rounded-xl bg-slate-800/50">
+                                    <div class="text-xs text-slate-500 mb-1">Uptime</div>
+                                    <div id="sys-uptime" class="text-xl font-mono font-semibold">--</div>
+                                </div>
+                            </div>
+                            
+                            <div class="h-48">
+                                <canvas id="system-chart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div class="glass-card rounded-2xl p-6">
+                            <div class="flex items-center gap-3 mb-6">
+                                <div class="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center">
+                                    <i class="fas fa-bolt text-purple-400 text-xl"></i>
+                                </div>
+                                <h3 class="font-semibold text-slate-100">Aktivität</h3>
+                            </div>
+                            <div id="recent-activity" class="space-y-4 max-h-80 overflow-y-auto">
+                                <div class="skeleton h-12"></div>
+                                <div class="skeleton h-12"></div>
+                                <div class="skeleton h-12"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="lg:col-span-2 glass-card rounded-2xl p-6">
+                            <div class="flex items-center justify-between mb-6">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center">
+                                        <i class="fas fa-rocket text-pink-400 text-xl"></i>
+                                    </div>
+                                    <h3 class="font-semibold text-slate-100">Aktive Projekte</h3>
+                                </div>
+                                <button onclick="switchTab('projects')" class="text-sm text-blue-400 hover:text-blue-300">Alle anzeigen →</button>
+                            </div>
+                            <div id="dashboard-projects" class="space-y-4">
+                                <div class="skeleton h-20"></div>
+                                <div class="skeleton h-20"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="glass-card rounded-2xl p-6">
+                            <div class="flex items-center gap-3 mb-6">
+                                <div class="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center">
+                                    <i class="fas fa-calendar-check text-green-400 text-xl"></i>
+                                </div>
+                                <h3 class="font-semibold text-slate-100">Events</h3>
+                            </div>
+                            <div id="dashboard-events" class="space-y-3">
+                                <div class="skeleton h-16"></div>
+                                <div class="skeleton h-16"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="github-grid">
-                    <div class="widget">
-                        <div class="widget-header">
-                            <h3><i class="fas fa-exclamation-circle"></i> Open Issues</h3>
+
+                <!-- TASKS -->
+                <div id="tab-tasks" class="tab-content hidden space-y-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <button onclick="setTaskView('kanban')" id="view-kanban-btn" class="px-4 py-2 rounded-lg text-sm font-medium bg-blue-500 text-white">
+                                <i class="fas fa-columns mr-2"></i>Kanban
+                            </button>
+                            <button onclick="setTaskView('list')" id="view-list-btn" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-white/5">
+                                <i class="fas fa-list mr-2"></i>Liste
+                            </button>
                         </div>
-                        <div class="github-list" id="github-issues"></div>
+                        <div class="flex items-center gap-3">
+                            <div class="relative">
+                                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                                <input type="text" id="task-search" placeholder="Tasks suchen..." oninput="filterTasks()" class="pl-10 pr-4 py-2 rounded-lg bg-slate-800 border border-white/5 text-slate-200 text-sm w-64">
+                            </div>
+                            <select id="task-filter-project" onchange="filterTasks()" class="px-3 py-2 rounded-lg bg-slate-800 border border-white/5 text-slate-200 text-sm">
+                                <option value="">Alle Projekte</option>
+                            </select>
+                            <select id="task-filter-priority" onchange="filterTasks()" class="px-3 py-2 rounded-lg bg-slate-800 border border-white/5 text-slate-200 text-sm">
+                                <option value="">Alle Prioritäten</option>
+                                <option value="1">P1 - Critical</option>
+                                <option value="2">P2 - High</option>
+                                <option value="3">P3 - Medium</option>
+                                <option value="4">P4 - Low</option>
+                            </select>
+                            <button onclick="openTaskModal()" class="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium">
+                                <i class="fas fa-plus mr-1"></i>Neu
+                            </button>
+                        </div>
                     </div>
-                    <div class="widget">
-                        <div class="widget-header">
-                            <h3><i class="fas fa-code-branch"></i> Pull Requests</h3>
+                    
+                    <div id="kanban-view" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="glass-card rounded-xl p-4">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-3 h-3 rounded-full bg-slate-400"></div>
+                                    <span class="font-medium text-slate-200">Todo</span>
+                                    <span id="count-todo" class="px-2 py-0.5 text-xs bg-slate-700 rounded-full text-slate-400">0</span>
+                                </div>
+                            </div>
+                            <div id="kanban-todo" class="kanban-column space-y-3"></div>
                         </div>
-                        <div class="github-list" id="github-prs"></div>
+                        <div class="glass-card rounded-xl p-4">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-3 h-3 rounded-full bg-blue-400"></div>
+                                    <span class="font-medium text-slate-200">In Progress</span>
+                                    <span id="count-in_progress" class="px-2 py-0.5 text-xs bg-slate-700 rounded-full text-slate-400">0</span>
+                                </div>
+                            </div>
+                            <div id="kanban-in_progress" class="kanban-column space-y-3"></div>
+                        </div>
+                        <div class="glass-card rounded-xl p-4">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-3 h-3 rounded-full bg-green-400"></div>
+                                    <span class="font-medium text-slate-200">Done</span>
+                                    <span id="count-done" class="px-2 py-0.5 text-xs bg-slate-700 rounded-full text-slate-400">0</span>
+                                </div>
+                            </div>
+                            <div id="kanban-done" class="kanban-column space-y-3"></div>
+                        </div>
+                        <div class="glass-card rounded-xl p-4">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-3 h-3 rounded-full bg-red-400"></div>
+                                    <span class="font-medium text-slate-200">Blocked</span>
+                                    <span id="count-blocked" class="px-2 py-0.5 text-xs bg-slate-700 rounded-full text-slate-400">0</span>
+                                </div>
+                            </div>
+                            <div id="kanban-blocked" class="kanban-column space-y-3"></div>
+                        </div>
                     </div>
-                    <div class="widget full-width">
-                        <div class="widget-header">
-                            <h3><i class="fas fa-code-commit"></i> Recent Commits (7 Tage)</h3>
-                        </div>
-                        <div class="github-list" id="github-commits"></div>
+                    
+                    <div id="list-view" class="hidden glass-card rounded-2xl overflow-hidden">
+                        <table class="w-full">
+                            <thead class="bg-slate-800/50 text-left">
+                                <tr>
+                                    <th class="px-4 py-3 text-xs font-medium text-slate-400">Task</th>
+                                    <th class="px-4 py-3 text-xs font-medium text-slate-400">Projekt</th>
+                                    <th class="px-4 py-3 text-xs font-medium text-slate-400">Status</th>
+                                    <th class="px-4 py-3 text-xs font-medium text-slate-400">Priorität</th>
+                                    <th class="px-4 py-3 text-xs font-medium text-slate-400">Deadline</th>
+                                    <th class="px-4 py-3 text-xs font-medium text-slate-400"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="tasks-table-body" class="divide-y divide-white/5"></tbody>
+                        </table>
                     </div>
                 </div>
-            </section>
+
+                <!-- PROJECTS -->
+                <div id="tab-projects" class="tab-content hidden space-y-6">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xl font-semibold">Projekte</h2>
+                        <button onclick="openProjectModal()" class="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium">
+                            <i class="fas fa-plus mr-1"></i>Neues Projekt
+                        </button>
+                    </div>
+                    <div id="projects-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                </div>
+
+                <!-- CALENDAR -->
+                <div id="tab-calendar" class="tab-content hidden space-y-6">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xl font-semibold">Kalender</h2>
+                        <div class="flex items-center gap-2">
+                            <button onclick="changeMonth(-1)" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700"><i class="fas fa-chevron-left"></i></button>
+                            <span id="calendar-month" class="text-lg font-medium min-w-[150px] text-center"></span>
+                            <button onclick="changeMonth(1)" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700"><i class="fas fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+                    <div class="glass-card rounded-2xl p-6">
+                        <div class="grid grid-cols-7 gap-1 mb-2 text-center text-xs text-slate-500">
+                            <div>Mo</div><div>Di</div><div>Mi</div><div>Do</div><div>Fr</div><div>Sa</div><div>So</div>
+                        </div>
+                        <div id="calendar-grid" class="calendar-grid"></div>
+                    </div>
+                    <div id="calendar-events" class="glass-card rounded-2xl p-6">
+                        <h3 class="font-semibold mb-4">Events</h3>
+                        <div id="selected-day-events" class="space-y-2"></div>
+                    </div>
+                </div>
+
+                <!-- NOTES -->
+                <div id="tab-notes" class="tab-content hidden space-y-6">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xl font-semibold">Notizen</h2>
+                        <button onclick="openNoteModal()" class="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium">
+                            <i class="fas fa-plus mr-1"></i>Neue Notiz
+                        </button>
+                    </div>
+                    <div id="notes-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+                </div>
+
+                <!-- GITHUB -->
+                <div id="tab-github" class="tab-content hidden space-y-6">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xl font-semibold">GitHub</h2>
+                        <span id="github-repo-name" class="text-sm text-slate-500"></span>
+                    </div>
+                    <div class="grid lg:grid-cols-2 gap-6">
+                        <div class="glass-card rounded-2xl p-6">
+                            <h3 class="font-semibold mb-4 flex items-center gap-2">
+                                <i class="fas fa-exclamation-circle text-green-400"></i>
+                                Open Issues
+                            </h3>
+                            <div id="github-issues" class="space-y-3"></div>
+                        </div>
+                        <div class="glass-card rounded-2xl p-6">
+                            <h3 class="font-semibold mb-4 flex items-center gap-2">
+                                <i class="fas fa-code-branch text-purple-400"></i>
+                                Pull Requests
+                            </h3>
+                            <div id="github-prs" class="space-y-3"></div>
+                        </div>
+                        <div class="lg:col-span-2 glass-card rounded-2xl p-6">
+                            <h3 class="font-semibold mb-4 flex items-center gap-2">
+                                <i class="fas fa-code-commit text-slate-400"></i>
+                                Recent Commits
+                            </h3>
+                            <div id="github-commits" class="space-y-2"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </main>
     </div>
 
-    <!-- Modals -->
-    <div class="modal" id="task-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="task-modal-title">Neuer Task</h3>
-                <button class="modal-close"><i class="fas fa-times"></i></button>
-            </div>
-            <form id="task-form">
-                <input type="hidden" id="task-id">
-                <div class="form-group">
-                    <label>Title</label>
-                    <input type="text" id="task-title" required>
-                </div>
-                <div class="form-group">
-                    <label>Beschreibung</label>
-                    <textarea id="task-description" rows="3"></textarea>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Status</label>
-                        <select id="task-status">
-                            <option value="todo">Todo</option>
-                            <option value="in_progress">In Progress</option>
-                            <option value="done">Done</option>
-                            <option value="blocked">Blocked</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Priorität</label>
-                        <select id="task-priority">
-                            <option value="1">1 - Critical</option>
-                            <option value="2">2 - High</option>
-                            <option value="3" selected>3 - Medium</option>
-                            <option value="4">4 - Low</option>
-                            <option value="5">5 - Nice to have</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Projekt</label>
-                    <select id="task-project"></select>
-                </div>
-                <div class="form-group">
-                    <label>Deadline</label>
-                    <input type="date" id="task-due-date">
-                </div>
-                <div class="form-actions">
-                    <button type="button" class="btn-secondary modal-close">Abbrechen</button>
-                    <button type="submit" class="btn-primary">Speichern</button>
-                </div>
-            </form>
-        </div>
-    </div>
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
 
-    <div class="modal" id="project-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="project-modal-title">Neues Projekt</h3>
-                <button class="modal-close"><i class="fas fa-times"></i></button>
+    <!-- Note Modal -->
+    <div id="note-modal" class="command-palette" onclick="if(event.target===this)closeNoteModal()">
+        <div class="glass-card w-full max-w-2xl mx-4 rounded-xl overflow-hidden" onclick="event.stopPropagation()">
+            <div class="p-4 border-b border-white/10 flex items-center justify-between">
+                <h3 class="text-lg font-semibold">Neue Notiz</h3>
+                <button onclick="closeNoteModal()" class="text-slate-400 hover:text-slate-200"><i class="fas fa-times"></i></button>
             </div>
-            <form id="project-form">
-                <input type="hidden" id="project-id">
-                <div class="form-group">
-                    <label>Name</label>
-                    <input type="text" id="project-name" required>
+            <form id="note-form" onsubmit="saveNote(event)" class="p-4 space-y-4">
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1">Titel</label>
+                    <input type="text" id="note-title" required class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-white/10 text-slate-200">
                 </div>
-                <div class="form-group">
-                    <label>Beschreibung</label>
-                    <textarea id="project-description" rows="3"></textarea>
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1">Inhalt (Markdown)</label>
+                    <textarea id="note-content" rows="8" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-white/10 text-slate-200 font-mono text-sm"></textarea>
                 </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Phase</label>
-                        <input type="text" id="project-phase" placeholder="z.B. M1: Foundation">
-                    </div>
-                    <div class="form-group">
-                        <label>Status</label>
-                        <select id="project-status">
-                            <option value="not_started">Not Started</option>
-                            <option value="in_progress">In Progress</option>
-                            <option value="blocked">Blocked</option>
-                            <option value="done">Done</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Priorität</label>
-                        <select id="project-priority">
-                            <option value="1">1 - Critical</option>
-                            <option value="2">2 - High</option>
-                            <option value="3" selected>3 - Medium</option>
-                            <option value="4">4 - Low</option>
-                            <option value="5">5 - Nice to have</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Deadline</label>
-                        <input type="date" id="project-deadline">
-                    </div>
-                </div>
-                <div class="form-actions">
-                    <button type="button" class="btn-secondary modal-close">Abbrechen</button>
-                    <button type="submit" class="btn-primary">Speichern</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <div class="modal" id="note-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Neue Notiz</h3>
-                <button class="modal-close"><i class="fas fa-times"></i></button>
-            </div>
-            <form id="note-form">
-                <div class="form-group">
-                    <label>Notiz</label>
-                    <textarea id="note-content" rows="4" required></textarea>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Kategorie</label>
-                        <select id="note-category">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm text-slate-400 mb-1">Kategorie</label>
+                        <select id="note-category" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-white/10 text-slate-200">
                             <option value="ideas">Ideen</option>
                             <option value="meeting">Meeting</option>
                             <option value="random">Random</option>
+                            <option value="todo">Todo</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label>Farbe</label>
-                        <select id="note-color">
+                    <div>
+                        <label class="block text-sm text-slate-400 mb-1">Farbe</label>
+                        <select id="note-color" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-white/10 text-slate-200">
                             <option value="yellow">Gelb</option>
                             <option value="blue">Blau</option>
                             <option value="green">Grün</option>
@@ -354,16 +504,14 @@
                         </select>
                     </div>
                 </div>
-                <div class="form-actions">
-                    <button type="button" class="btn-secondary modal-close">Abbrechen</button>
-                    <button type="submit" class="btn-primary">Speichern</button>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="button" onclick="closeNoteModal()" class="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200">Abbrechen</button>
+                    <button type="submit" class="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white">Speichern</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <div class="toast-container" id="toast-container"></div>
-
-    <script src="/app.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
