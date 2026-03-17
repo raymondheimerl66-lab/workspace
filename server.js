@@ -39,7 +39,12 @@ const CACHE_TTL = {
 
 // ==================== API ROUTES ====================
 
-// Health Check
+// Simple Health Check for Railway
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok' });
+});
+
+// Detailed Health Check
 app.get('/api/health', async (req, res) => {
     try {
         const now = Date.now();
