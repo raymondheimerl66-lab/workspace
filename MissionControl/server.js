@@ -4,6 +4,7 @@ const path = require('path');
 const { exec } = require('child_process');
 const { promisify } = require('util');
 const fs = require('fs');
+const multer = require('multer');
 
 const execAsync = promisify(exec);
 const app = express();
@@ -23,6 +24,22 @@ function getDb() {
     }
     return db;
 }
+
+// File upload configuration
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const uploadDir = path.join(__dirname, 'uploads');
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, uniqueSuffix + path.extname(file.originalname));
+    }
+});
+const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } }); // 50MB limit
 
 // Cache for external data
 const cache = {
@@ -364,9 +381,12 @@ app.post('/api/events', (req, res) => {
 app.get('/api/settings', (req, res) => {
     const db = getDb();
     const settings = db.prepare('SELECT * FROM settings').all();
+    const userSettings = db.prepare('SELECT * FROM user_settings WHERE id = 1').get();
+    
     const settingsObj = {};
     settings.forEach(s => settingsObj[s.key] = s.value);
-    res.json(settingsObj);
+    
+    res.json({ ...settingsObj, ...userSettings });
 });
 
 // Update setting
@@ -375,12 +395,522 @@ app.put('/api/settings/:key', (req, res) => {
     const { key } = req.params;
     const { value } = req.body;
     
-    db.prepare(`
-        INSERT INTO settings (key, value) VALUES (?, ?)
-        ON CONFLICT(key) DO UPDATE SET value = excluded.value
-    `).run(key, value);
+    const userSettingColumns = ['theme', 'notifications_enabled', 'pomodoro_duration', 'break_duration', 'daily_goal_hours'];
+    
+    if (userSettingColumns.includes(key)) {
+        db.prepare(`UPDATE user_settings SET ${key} = ? WHERE id = 1`).run(value);
+    } else {
+        db.prepare(`
+            INSERT INTO settings (key, value) VALUES (?, ?)
+            ON CONFLICT(key) DO UPDATE SET value = excluded.value
+        `).run(key, value);
+    }
     
     res.json({ message: 'Setting updated' });
+});
+
+// ==================== TIME TRACKING API ====================
+
+// Start timer for task
+app.post('/api/tasks/:id/start-timer', (req, res) => {
+    const db = getDb();
+    const { id } = req.params;
+    const now = new Date().toISOString();
+    
+    db.prepare(`
+        UPDATE tasks 
+        SET timer_started_at = ?
+        WHERE id = ?
+    `).run(now, id);
+    
+    res.json({ message: 'Timer started', started_at: now });
+});
+
+// Stop timer for task
+app.post('/api/tasks/:id/stop-timer', (req, res) => {
+    const db = getDb();
+    const { id } = req.params;
+    
+    const task = db.prepare('SELECT timer_started_at, tracked_time FROM tasks WHERE id = ?').get(id);
+    if (!task || !task.timer_started_at) {
+        return res.status(400).json({ error: 'Timer not running' });
+    }
+    
+    const startedAt = new Date(task.timer_started_at);
+    const now = new Date();
+    const elapsedSeconds = Math.floor((now - startedAt) / 1000);
+    const newTrackedTime = (task.tracked_time || 0) + elapsedSeconds;
+    
+    db.prepare(`
+        UPDATE tasks 
+        SET tracked_time = ?, timer_started_at = NULL
+        WHERE id = ?
+    `).run(newTrackedTime, id);
+    
+    res.json({ 
+        message: 'Timer stopped', 
+        elapsed_seconds: elapsedSeconds,
+        total_tracked: newTrackedTime
+    });
+});
+
+// Get time report
+app.get('/api/time-report', (req, res) => {
+    const db = getDb();
+    const { period } = req.query;
+    
+    let sql;
+    if (period === 'weekly') {
+        sql = `
+            SELECT 
+                p.name as project_name,
+                SUM(t.tracked_time) as total_seconds,
+                COUNT(t.id) as task_count
+            FROM tasks t
+            LEFT JOIN projects p ON t.project_id = p.id
+            WHERE t.updated_at >= date('now', '-7 days')
+            GROUP BY t.project_id
+            ORDER BY total_seconds DESC
+        `;
+    } else {
+        sql = `
+            SELECT 
+                p.name as project_name,
+                SUM(t.tracked_time) as total_seconds,
+                COUNT(t.id) as task_count
+            FROM tasks t
+            LEFT JOIN projects p ON t.project_id = p.id
+            WHERE date(t.updated_at) = date('now')
+            GROUP BY t.project_id
+            ORDER BY total_seconds DESC
+        `;
+    }
+    
+    const report = db.prepare(sql).all();
+    
+    const formatted = report.map(r => ({
+        ...r,
+        total_hours: Math.floor(r.total_seconds / 3600),
+        total_minutes: Math.floor((r.total_seconds % 3600) / 60)
+    }));
+    
+    res.json(formatted);
+});
+
+// ==================== HABITS API ====================
+
+// Get all habits with today's status
+app.get('/api/habits', (req, res) => {
+    const db = getDb();
+    const today = new Date().toISOString().split('T')[0];
+    
+    const habits = db.prepare(`
+        SELECT h.*, 
+               COALESCE(hl.completed, 0) as completed_today,
+               (SELECT COUNT(*) FROM habit_logs WHERE habit_id = h.id AND completed = 1) as total_completions
+        FROM habits h
+        LEFT JOIN habit_logs hl ON h.id = hl.habit_id AND hl.date = ?
+        ORDER BY h.created_at DESC
+    `).all(today);
+    
+    res.json(habits);
+});
+
+// Create habit
+app.post('/api/habits', (req, res) => {
+    const db = getDb();
+    const { name, color, icon } = req.body;
+    
+    const result = db.prepare(`
+        INSERT INTO habits (name, color, icon)
+        VALUES (?, ?, ?)
+    `).run(name, color || '#3b82f6', icon || 'fa-check');
+    
+    res.json({ id: result.lastInsertRowid, message: 'Habit created' });
+});
+
+// Update habit
+app.put('/api/habits/:id', (req, res) => {
+    const db = getDb();
+    const { id } = req.params;
+    const { name, color, icon } = req.body;
+    
+    db.prepare(`
+        UPDATE habits 
+        SET name = COALESCE(?, name),
+            color = COALESCE(?, color),
+            icon = COALESCE(?, icon)
+        WHERE id = ?
+    `).run(name, color, icon, id);
+    
+    res.json({ message: 'Habit updated' });
+});
+
+// Delete habit
+app.delete('/api/habits/:id', (req, res) => {
+    const db = getDb();
+    const { id } = req.params;
+    db.prepare('DELETE FROM habits WHERE id = ?').run(id);
+    res.json({ message: 'Habit deleted' });
+});
+
+// Toggle habit completion
+app.post('/api/habits/:id/toggle', (req, res) => {
+    const db = getDb();
+    const { id } = req.params;
+    const today = new Date().toISOString().split('T')[0];
+    
+    const existing = db.prepare('SELECT * FROM habit_logs WHERE habit_id = ? AND date = ?').get(id, today);
+    
+    if (existing) {
+        db.prepare('DELETE FROM habit_logs WHERE id = ?').run(existing.id);
+        res.json({ completed: false, message: 'Habit unchecked' });
+    } else {
+        db.prepare(`
+            INSERT INTO habit_logs (habit_id, date, completed)
+            VALUES (?, ?, 1)
+        `).run(id, today);
+        res.json({ completed: true, message: 'Habit completed' });
+    }
+});
+
+// ==================== GOALS API ====================
+
+// Get all goals
+app.get('/api/goals', (req, res) => {
+    const db = getDb();
+    const goals = db.prepare(`
+        SELECT g.*, p.name as project_name,
+               (SELECT COUNT(*) FROM key_results WHERE goal_id = g.id) as kr_count,
+               (SELECT COUNT(*) FROM key_results WHERE goal_id = g.id AND current >= target) as kr_completed
+        FROM goals g
+        LEFT JOIN projects p ON g.project_id = p.id
+        ORDER BY g.year DESC, g.quarter DESC
+    `).all();
+    res.json(goals);
+});
+
+// Create goal
+app.post('/api/goals', (req, res) => {
+    const db = getDb();
+    const { title, quarter, year, project_id } = req.body;
+    
+    const result = db.prepare(`
+        INSERT INTO goals (title, quarter, year, project_id)
+        VALUES (?, ?, ?, ?)
+    `).run(title, quarter, year, project_id);
+    
+    res.json({ id: result.lastInsertRowid, message: 'Goal created' });
+});
+
+// Update goal
+app.put('/api/goals/:id', (req, res) => {
+    const db = getDb();
+    const { id } = req.params;
+    const { title, quarter, year, status, progress, project_id } = req.body;
+    
+    db.prepare(`
+        UPDATE goals 
+        SET title = COALESCE(?, title),
+            quarter = COALESCE(?, quarter),
+            year = COALESCE(?, year),
+            status = COALESCE(?, status),
+            progress = COALESCE(?, progress),
+            project_id = COALESCE(?, project_id)
+        WHERE id = ?
+    `).run(title, quarter, year, status, progress, project_id, id);
+    
+    res.json({ message: 'Goal updated' });
+});
+
+// Delete goal
+app.delete('/api/goals/:id', (req, res) => {
+    const db = getDb();
+    const { id } = req.params;
+    db.prepare('DELETE FROM goals WHERE id = ?').run(id);
+    res.json({ message: 'Goal deleted' });
+});
+
+// ==================== KEY RESULTS API ====================
+
+// Get key results for a goal
+app.get('/api/goals/:id/key-results', (req, res) => {
+    const db = getDb();
+    const { id } = req.params;
+    
+    const krs = db.prepare('SELECT * FROM key_results WHERE goal_id = ? ORDER BY created_at').all(id);
+    res.json(krs);
+});
+
+// Create key result
+app.post('/api/key-results', (req, res) => {
+    const db = getDb();
+    const { goal_id, title, target, current } = req.body;
+    
+    const result = db.prepare(`
+        INSERT INTO key_results (goal_id, title, target, current)
+        VALUES (?, ?, ?, ?)
+    `).run(goal_id, title, target, current || 0);
+    
+    res.json({ id: result.lastInsertRowid, message: 'Key Result created' });
+});
+
+// Update key result
+app.put('/api/key-results/:id', (req, res) => {
+    const db = getDb();
+    const { id } = req.params;
+    const { title, target, current } = req.body;
+    
+    db.prepare(`
+        UPDATE key_results 
+        SET title = COALESCE(?, title),
+            target = COALESCE(?, target),
+            current = COALESCE(?, current)
+        WHERE id = ?
+    `).run(title, target, current, id);
+    
+    res.json({ message: 'Key Result updated' });
+});
+
+// Delete key result
+app.delete('/api/key-results/:id', (req, res) => {
+    const db = getDb();
+    const { id } = req.params;
+    db.prepare('DELETE FROM key_results WHERE id = ?').run(id);
+    res.json({ message: 'Key Result deleted' });
+});
+
+// ==================== JOURNAL API ====================
+
+// Get all journal entries
+app.get('/api/journal', (req, res) => {
+    const db = getDb();
+    const entries = db.prepare(`
+        SELECT * FROM journal
+        ORDER BY date DESC
+        LIMIT 50
+    `).all();
+    res.json(entries);
+});
+
+// Get journal entry for specific date
+app.get('/api/journal/:date', (req, res) => {
+    const db = getDb();
+    const { date } = req.params;
+    
+    const entry = db.prepare('SELECT * FROM journal WHERE date = ?').get(date);
+    res.json(entry || null);
+});
+
+// Create/update journal entry
+app.post('/api/journal', (req, res) => {
+    const db = getDb();
+    const { date, content, mood, tags, tasks_completed, tasks_planned, blockers } = req.body;
+    
+    const existing = db.prepare('SELECT id FROM journal WHERE date = ?').get(date);
+    
+    if (existing) {
+        db.prepare(`
+            UPDATE journal 
+            SET content = ?, mood = ?, tags = ?, tasks_completed = ?, tasks_planned = ?, blockers = ?
+            WHERE date = ?
+        `).run(content, mood, tags, tasks_completed, tasks_planned, blockers, date);
+        res.json({ message: 'Journal entry updated' });
+    } else {
+        const result = db.prepare(`
+            INSERT INTO journal (date, content, mood, tags, tasks_completed, tasks_planned, blockers)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        `).run(date, content, mood, tags, tasks_completed, tasks_planned, blockers);
+        res.json({ id: result.lastInsertRowid, message: 'Journal entry created' });
+    }
+});
+
+// Delete journal entry
+app.delete('/api/journal/:id', (req, res) => {
+    const db = getDb();
+    const { id } = req.params;
+    db.prepare('DELETE FROM journal WHERE id = ?').run(id);
+    res.json({ message: 'Journal entry deleted' });
+});
+
+// ==================== FILE UPLOAD API ====================
+
+// Upload file
+app.post('/api/upload', upload.single('file'), (req, res) => {
+    const db = getDb();
+    const { task_id } = req.body;
+    
+    if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+    }
+    
+    const result = db.prepare(`
+        INSERT INTO files (task_id, filename, original_name, path, size, mime_type)
+        VALUES (?, ?, ?, ?, ?, ?)
+    `).run(
+        task_id || null,
+        req.file.filename,
+        req.file.originalname,
+        req.file.path,
+        req.file.size,
+        req.file.mimetype
+    );
+    
+    res.json({ 
+        id: result.lastInsertRowid, 
+        filename: req.file.filename,
+        original_name: req.file.originalname,
+        size: req.file.size,
+        message: 'File uploaded' 
+    });
+});
+
+// Get files for a task
+app.get('/api/tasks/:id/files', (req, res) => {
+    const db = getDb();
+    const { id } = req.params;
+    
+    const files = db.prepare('SELECT * FROM files WHERE task_id = ? ORDER BY uploaded_at DESC').all(id);
+    res.json(files);
+});
+
+// Download file
+app.get('/api/files/:id/download', (req, res) => {
+    const db = getDb();
+    const { id } = req.params;
+    
+    const file = db.prepare('SELECT * FROM files WHERE id = ?').get(id);
+    if (!file) {
+        return res.status(404).json({ error: 'File not found' });
+    }
+    
+    res.download(file.path, file.original_name);
+});
+
+// Delete file
+app.delete('/api/files/:id', (req, res) => {
+    const db = getDb();
+    const { id } = req.params;
+    
+    const file = db.prepare('SELECT * FROM files WHERE id = ?').get(id);
+    if (file && fs.existsSync(file.path)) {
+        fs.unlinkSync(file.path);
+    }
+    
+    db.prepare('DELETE FROM files WHERE id = ?').run(id);
+    res.json({ message: 'File deleted' });
+});
+
+// ==================== SEARCH API ====================
+
+// Global search
+app.get('/api/search', (req, res) => {
+    const db = getDb();
+    const { q } = req.query;
+    
+    if (!q || q.length < 2) {
+        return res.json({ tasks: [], projects: [], notes: [], files: [] });
+    }
+    
+    const searchTerm = `%${q}%`;
+    
+    const tasks = db.prepare(`
+        SELECT t.*, p.name as project_name 
+        FROM tasks t 
+        LEFT JOIN projects p ON t.project_id = p.id
+        WHERE t.title LIKE ? OR t.description LIKE ?
+        ORDER BY t.created_at DESC
+        LIMIT 10
+    `).all(searchTerm, searchTerm);
+    
+    const projects = db.prepare(`
+        SELECT * FROM projects 
+        WHERE name LIKE ? OR description LIKE ?
+        ORDER BY created_at DESC
+        LIMIT 10
+    `).all(searchTerm, searchTerm);
+    
+    const notes = db.prepare(`
+        SELECT * FROM notes 
+        WHERE title LIKE ? OR content LIKE ?
+        ORDER BY created_at DESC
+        LIMIT 10
+    `).all(searchTerm, searchTerm);
+    
+    const files = db.prepare(`
+        SELECT f.*, t.title as task_title 
+        FROM files f 
+        LEFT JOIN tasks t ON f.task_id = t.id
+        WHERE f.original_name LIKE ?
+        ORDER BY f.uploaded_at DESC
+        LIMIT 10
+    `).all(searchTerm);
+    
+    res.json({ tasks, projects, notes, files });
+});
+
+// ==================== DATA EXPORT API ====================
+
+// Export tasks as JSON
+app.get('/api/export/tasks', (req, res) => {
+    const db = getDb();
+    const tasks = db.prepare(`
+        SELECT t.*, p.name as project_name 
+        FROM tasks t 
+        LEFT JOIN projects p ON t.project_id = p.id
+        ORDER BY t.created_at DESC
+    `).all();
+    
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', 'attachment; filename="tasks.json"');
+    res.json(tasks);
+});
+
+// Export tasks as CSV
+app.get('/api/export/tasks/csv', (req, res) => {
+    const db = getDb();
+    const tasks = db.prepare(`
+        SELECT t.*, p.name as project_name 
+        FROM tasks t 
+        LEFT JOIN projects p ON t.project_id = p.id
+        ORDER BY t.created_at DESC
+    `).all();
+    
+    const headers = ['ID', 'Title', 'Description', 'Status', 'Priority', 'Project', 'Due Date', 'Tracked Time'];
+    const rows = tasks.map(t => [
+        t.id, 
+        `"${(t.title || '').replace(/"/g, '""')}"`, 
+        `"${(t.description || '').replace(/"/g, '""')}"`,
+        t.status,
+        t.priority,
+        `"${(t.project_name || '').replace(/"/g, '""')}"`,
+        t.due_date || '',
+        t.tracked_time || 0
+    ]);
+    
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="tasks.csv"');
+    res.send(csv);
+});
+
+// Export projects as JSON
+app.get('/api/export/projects', (req, res) => {
+    const db = getDb();
+    const projects = db.prepare(`
+        SELECT p.*, 
+               COUNT(t.id) as task_count,
+               SUM(CASE WHEN t.status = 'done' THEN 1 ELSE 0 END) as completed_tasks
+        FROM projects p
+        LEFT JOIN tasks t ON p.id = t.project_id
+        GROUP BY p.id
+        ORDER BY p.created_at DESC
+    `).all();
+    
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', 'attachment; filename="projects.json"');
+    res.json(projects);
 });
 
 // ==================== FRONTEND ====================
@@ -403,3 +933,4 @@ app.listen(PORT, () => {
 });
 
 module.exports = app;
+

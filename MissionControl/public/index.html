@@ -2,461 +2,357 @@
 <html lang="de" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Mission Control">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>Mission Control PRO</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icon-192.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.3); border-radius: 3px; }
-        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); }
+        * { -webkit-tap-highlight-color: transparent; }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        .glass { background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
         .glass-card { background: linear-gradient(135deg, rgba(30,41,59,0.9), rgba(15,23,42,0.95)); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.06); }
-        .glass-highlight { background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(139,92,246,0.1)); border: 1px solid rgba(59,130,246,0.2); }
         .gradient-text { background: linear-gradient(135deg, #3b82f6, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .hover-lift { transition: transform 0.2s ease, box-shadow 0.2s ease; }
-        .hover-lift:hover { transform: translateY(-2px); box-shadow: 0 10px 40px -10px rgba(0,0,0,0.5); }
-        .kanban-column { min-height: 200px; }
-        .kanban-column.drag-over { background: rgba(59,130,246,0.08); }
-        .kanban-card { cursor: grab; }
-        .kanban-card:active { cursor: grabbing; }
-        .custom-checkbox { width: 20px; height: 20px; border: 2px solid rgba(148,163,184,0.4); border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
-        .custom-checkbox:hover { border-color: #3b82f6; }
+        .hover-lift { transition: all 0.2s; }
+        .hover-lift:active { transform: scale(0.98); }
+        .custom-checkbox { width: 24px; height: 24px; border: 2px solid rgba(148,163,184,0.4); border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .custom-checkbox.checked { background: linear-gradient(135deg, #3b82f6, #8b5cf6); border-color: transparent; }
-        .command-palette { position: fixed; inset: 0; z-index: 9999; display: none; align-items: flex-start; justify-content: center; padding-top: 100px; background: rgba(2,6,23,0.8); backdrop-filter: blur(8px); }
+        .command-palette { position: fixed; inset: 0; z-index: 9999; display: none; align-items: flex-start; justify-content: center; padding-top: 100px; background: rgba(2,6,23,0.9); backdrop-filter: blur(12px); }
         .command-palette.active { display: flex; }
-        .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 10000; display: flex; flex-direction: column; gap: 8px; }
+        .bottom-sheet { position: fixed; inset: 0; z-index: 9998; display: none; align-items: flex-end; background: rgba(2,6,23,0.8); backdrop-filter: blur(8px); }
+        .bottom-sheet.active { display: flex; }
+        .bottom-sheet-content { width: 100%; max-height: 90vh; overflow-y: auto; border-radius: 24px 24px 0 0; animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .toast-container { position: fixed; bottom: 100px; right: 16px; left: 16px; z-index: 10000; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+        @media (min-width: 640px) { .toast-container { bottom: 24px; left: auto; width: 400px; right: 24px; } }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: rgba(255,255,255,0.05); border-radius: 12px; overflow: hidden; }
-        .calendar-day { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(30,41,59,0.8); cursor: pointer; transition: all 0.15s; position: relative; }
-        .calendar-day:hover { background: rgba(59,130,246,0.15); }
+        .calendar-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; background: rgba(30,41,59,0.8); cursor: pointer; min-height: 44px; }
         .calendar-day.today { background: rgba(59,130,246,0.25); font-weight: 600; }
-        .calendar-day.has-event::after { content: ''; position: absolute; bottom: 4px; width: 4px; height: 4px; background: #3b82f6; border-radius: 50%; }
-        .skeleton { background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 4px; }
+        .skeleton { background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
         @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-        .status-online { background: #22c55e; box-shadow: 0 0 8px #22c55e; }
-        .status-offline { background: #ef4444; }
-        @media (max-width: 768px) { .sidebar { display: none; } .mobile-nav { display: flex; } .main-content { padding-bottom: 80px; } }
-        @media (min-width: 769px) { .mobile-nav { display: none; } }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: rgba(15, 23, 42, 0.98); backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.08); display: none; justify-content: space-around; align-items: center; padding-bottom: env(safe-area-inset-bottom, 0); z-index: 1000; }
+        .bottom-nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #64748b; font-size: 11px; gap: 4px; }
+        .bottom-nav-item.active { color: #3b82f6; }
+        .fab { position: fixed; bottom: 90px; right: 20px; width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white; display: none; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4); z-index: 999; }
+        .pomodoro-overlay { position: fixed; inset: 0; z-index: 9997; display: none; align-items: center; justify-content: center; background: rgba(2,6,23,0.98); }
+        .pomodoro-overlay.active { display: flex; }
+        .pomodoro-circle { width: 260px; height: 260px; border-radius: 50%; position: relative; display: flex; align-items: center; justify-content: center; }
+        .pomodoro-progress { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(#3b82f6 var(--progress, 0%), transparent 0); }
+        .pomodoro-inner { width: 220px; height: 220px; border-radius: 50%; background: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .pomodoro-time { font-size: 48px; font-weight: 700; font-variant-numeric: tabular-nums; }
+        .heatmap { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+        .heatmap-cell { aspect-ratio: 1; border-radius: 3px; }
+        @media (max-width: 639px) { .sidebar { display: none !important; } .bottom-nav { display: flex !important; } .fab { display: flex !important; } .main-content { padding-bottom: 90px !important; } }
+        @media (min-width: 640px) and (max-width: 1023px) { .sidebar { width: 64px !important; } .sidebar span { display: none !important; } }
+        @media (min-width: 1024px) { .bottom-nav { display: none !important; } .fab { display: none !important; } }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-200 font-sans antialiased selection:bg-blue-500/30">
-    
-    <!-- Command Palette -->
+<body class="bg-slate-950 text-slate-200 font-sans">
     <div id="command-palette" class="command-palette" onclick="closeCommandPalette(event)">
-        <div class="glass-card w-full max-w-2xl mx-4 rounded-xl overflow-hidden" onclick="event.stopPropagation()">
+        <div class="glass-card w-full max-w-2xl mx-4 rounded-xl" onclick="event.stopPropagation()">
             <div class="p-4 border-b border-white/10 flex items-center gap-3">
                 <i class="fas fa-search text-slate-400"></i>
-                <input type="text" id="command-input" placeholder="Suchen oder Befehl ausführen..." class="flex-1 bg-transparent border-none outline-none text-lg text-slate-100 placeholder-slate-500" oninput="searchCommand()">
-                <span class="px-2 py-1 text-xs bg-slate-800 rounded text-slate-400">ESC</span>
+                <input type="text" id="command-input" placeholder="Suchen..." class="flex-1 bg-transparent border-none outline-none text-lg" oninput="searchCommand()">
+                <span class="px-2 py-1 text-xs bg-slate-800 rounded">ESC</span>
             </div>
             <div id="command-results" class="max-h-96 overflow-y-auto p-2"></div>
         </div>
     </div>
-
-    <!-- Main App -->
+    <div id="pomodoro-overlay" class="pomodoro-overlay">
+        <div class="text-center">
+            <div class="pomodoro-circle">
+                <div id="pomodoro-progress" class="pomodoro-progress"></div>
+                <div class="pomodoro-inner">
+                    <div id="pomodoro-time" class="pomodoro-time gradient-text">25:00</div>
+                    <div id="pomodoro-status" class="text-slate-400 text-sm mt-2">Focus</div>
+                </div>
+            </div>
+            <div class="flex gap-4 mt-8 justify-center">
+                <button onclick="togglePomodoro()" class="w-16 h-16 rounded-full bg-blue-500 flex items-center justify-center text-2xl">
+                    <i class="fas fa-play" id="pomodoro-play-icon"></i>
+                </button>
+                <button onclick="resetPomodoro()" class="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center"><i class="fas fa-redo"></i></button>
+                <button onclick="closePomodoro()" class="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="mt-6 text-slate-400"><span id="pomodoro-cycles">0</span> Cycles</div>
+        </div>
+    </div>
     <div class="flex h-screen overflow-hidden">
-        
-        <!-- Sidebar -->
-        <aside class="sidebar w-64 bg-slate-900/95 border-r border-white/5 flex flex-col backdrop-blur-xl">
+        <aside class="sidebar w-64 bg-slate-900/95 border-r border-white/5 flex-col backdrop-blur-xl hidden md:flex">
             <div class="p-4 border-b border-white/5">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
-                        <i class="fas fa-rocket text-white"></i>
-                    </div>
-                    <div>
-                        <h1 class="font-semibold text-slate-100">Mission Control</h1>
-                        <span class="text-xs text-slate-500">PRO</span>
-                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center"><i class="fas fa-rocket text-white"></i></div>
+                    <div><h1 class="font-semibold">Mission Control</h1><span class="text-xs text-slate-500">PRO</span></div>
                 </div>
             </div>
-            
-            <nav class="flex-1 p-3 space-y-1 overflow-y-auto">
-                <button onclick="switchTab('dashboard')" data-tab="dashboard" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-100 hover:bg-white/5 transition-all group active">
-                    <i class="fas fa-th-large text-lg group-hover:text-blue-400 transition-colors"></i>
-                    <span>Dashboard</span>
-                </button>
-                <button onclick="switchTab('tasks')" data-tab="tasks" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-100 hover:bg-white/5 transition-all group">
-                    <i class="fas fa-check-circle text-lg group-hover:text-purple-400 transition-colors"></i>
-                    <span>Tasks</span>
-                    <span id="nav-task-count" class="ml-auto px-2 py-0.5 text-xs bg-blue-500/20 text-blue-400 rounded-full hidden">0</span>
-                </button>
-                <button onclick="switchTab('projects')" data-tab="projects" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-100 hover:bg-white/5 transition-all group">
-                    <i class="fas fa-folder text-lg group-hover:text-pink-400 transition-colors"></i>
-                    <span>Projekte</span>
-                </button>
-                <button onclick="switchTab('calendar')" data-tab="calendar" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-100 hover:bg-white/5 transition-all group">
-                    <i class="fas fa-calendar text-lg group-hover:text-green-400 transition-colors"></i>
-                    <span>Kalender</span>
-                </button>
-                <button onclick="switchTab('notes')" data-tab="notes" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-100 hover:bg-white/5 transition-all group">
-                    <i class="fas fa-sticky-note text-lg group-hover:text-amber-400 transition-colors"></i>
-                    <span>Notizen</span>
-                </button>
-                <button onclick="switchTab('github')" data-tab="github" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-100 hover:bg-white/5 transition-all group">
-                    <i class="fab fa-github text-lg group-hover:text-slate-200 transition-colors"></i>
-                    <span>GitHub</span>
-                </button>
+            <nav class="flex-1 p-3 space-y-1">
+                <button onclick="switchTab('dashboard')" data-tab="dashboard" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-400 hover:text-slate-100 hover:bg-white/5 active"><i class="fas fa-th-large text-lg w-6"></i><span>Dashboard</span></button>
+                <button onclick="switchTab('tasks')" data-tab="tasks" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-400 hover:text-slate-100 hover:bg-white/5"><i class="fas fa-check-circle text-lg w-6"></i><span>Tasks</span><span id="nav-task-count" class="ml-auto px-2 py-0.5 text-xs bg-blue-500/20 text-blue-400 rounded-full hidden">0</span></button>
+                <button onclick="switchTab('projects')" data-tab="projects" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-400 hover:text-slate-100 hover:bg-white/5"><i class="fas fa-folder text-lg w-6"></i><span>Projekte</span></button>
+                <button onclick="switchTab('habits')" data-tab="habits" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-400 hover:text-slate-100 hover:bg-white/5"><i class="fas fa-fire text-lg w-6"></i><span>Habits</span></button>
+                <button onclick="switchTab('goals')" data-tab="goals" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-400 hover:text-slate-100 hover:bg-white/5"><i class="fas fa-bullseye text-lg w-6"></i><span>Goals</span></button>
+                <button onclick="switchTab('journal')" data-tab="journal" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-400 hover:text-slate-100 hover:bg-white/5"><i class="fas fa-book text-lg w-6"></i><span>Journal</span></button>
+                <button onclick="switchTab('calendar')" data-tab="calendar" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-400 hover:text-slate-100 hover:bg-white/5"><i class="fas fa-calendar text-lg w-6"></i><span>Kalender</span></button>
+                <button onclick="switchTab('notes')" data-tab="notes" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-400 hover:text-slate-100 hover:bg-white/5"><i class="fas fa-sticky-note text-lg w-6"></i><span>Notizen</span></button>
             </nav>
-            
-            <div class="p-3 border-t border-white/5 space-y-2">
-                <div class="glass p-3 rounded-lg">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <i id="weather-icon" class="fas fa-cloud-sun text-xl text-blue-400"></i>
-                            <span id="weather-temp" class="text-lg font-semibold">--°</span>
-                        </div>
-                        <span id="weather-desc" class="text-xs text-slate-500">--</span>
-                    </div>
-                </div>
-                <div class="flex items-center gap-2 text-xs text-slate-500 px-2">
-                    <span class="status-dot status-online" id="system-status-dot"></span>
-                    <span id="system-status-text">System Online</span>
-                </div>
+            <div class="p-3 border-t border-white/5">
+                <button onclick="openPomodoro()" class="w-full glass p-3 rounded-lg flex items-center gap-3 mb-2 hover:bg-white/5">
+                    <i class="fas fa-clock text-orange-400"></i>
+                    <div class="flex-1 text-left"><div class="text-sm font-medium">Focus Timer</div><div class="text-xs text-slate-500">25 min sessions</div></div>
+                </button>
+                <button onclick="switchTab('settings')" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-slate-100 hover:bg-white/5">
+                    <i class="fas fa-cog text-lg w-6"></i><span>Settings</span>
+                </button>
             </div>
         </aside>
-
-        <!-- Main Content -->
-        <main class="flex-1 flex flex-col min-w-0 bg-slate-950">
-            
-            <!-- Header -->
-            <header class="h-16 border-b border-white/5 flex items-center justify-between px-6 bg-slate-900/50 backdrop-blur-sm">
+        <main class="flex-1 flex flex-col min-w-0 bg-slate-950 main-content">
+            <header class="h-16 border-b border-white/5 flex items-center justify-between px-4 bg-slate-900/50 backdrop-blur-sm">
                 <div class="flex items-center gap-4">
-                    <button class="lg:hidden p-2 rounded-lg hover:bg-white/5 text-slate-400">
-                        <i class="fas fa-bars text-xl"></i>
-                    </button>
-                    <nav id="breadcrumbs" class="hidden sm:flex items-center gap-2 text-sm text-slate-500">
-                        <span class="text-slate-300">Dashboard</span>
-                    </nav>
+                    <button class="lg:hidden p-2 rounded-lg hover:bg-white/5 text-slate-400"><i class="fas fa-bars text-xl"></i></button>
+                    <span id="page-title" class="text-lg font-semibold">Dashboard</span>
                 </div>
-                <div class="flex items-center gap-3">
-                    <button onclick="openCommandPalette()" class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 text-sm transition-colors">
-                        <i class="fas fa-search"></i>
-                        <span>Suchen...</span>
-                        <span class="ml-2 px-1.5 py-0.5 text-xs bg-slate-700 rounded">⌘K</span>
-                    </button>
-                    <button onclick="refreshAll()" id="refresh-btn" class="p-2 rounded-lg hover:bg-white/5 text-slate-400 hover:text-slate-200 transition-colors" title="Aktualisieren">
-                        <i class="fas fa-sync-alt text-xl"></i>
-                    </button>
-                    <button onclick="showQuickAdd()" class="p-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-colors shadow-lg shadow-blue-500/25">
-                        <i class="fas fa-plus text-xl"></i>
-                    </button>
+                <div class="flex items-center gap-2">
+                    <button onclick="openCommandPalette()" class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 text-slate-400 text-sm"><i class="fas fa-search"></i><span>Suchen...</span></button>
+                    <button onclick="refreshAll()" id="refresh-btn" class="p-2 rounded-lg hover:bg-white/5 text-slate-400"><i class="fas fa-sync-alt"></i></button>
+                    <button onclick="showTimeReport()" class="hidden sm:flex p-2 rounded-lg hover:bg-white/5 text-slate-400"><i class="fas fa-chart-bar"></i></button>
                 </div>
             </header>
-
-            <!-- Content -->
-            <div id="content-area" class="flex-1 overflow-y-auto p-6">
-                
-                <!-- DASHBOARD -->
-                <div id="tab-dashboard" class="tab-content space-y-6">
-                    <div class="glass-highlight rounded-2xl p-6 relative overflow-hidden">
-                        <div class="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-                        <div class="relative">
-                            <h2 id="welcome-text" class="text-2xl font-semibold mb-2">Guten Morgen, Ray!</h2>
-                            <p class="text-slate-400">Hier ist deine Übersicht für heute.</p>
-                        </div>
+            <div id="content-area" class="flex-1 overflow-y-auto p-4">
+                <!-- Dashboard Tab -->
+                <div id="tab-dashboard" class="tab-content space-y-4">
+                    <div class="glass-highlight rounded-2xl p-6">
+                        <h2 id="welcome-text" class="text-2xl font-semibold mb-2">Willkommen!</h2>
+                        <p class="text-slate-400">Deine Mission Control Übersicht.</p>
                     </div>
-                    
                     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
                         <div class="glass-card p-4 rounded-xl hover-lift">
                             <div class="flex items-center justify-between mb-3">
-                                <div class="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                                    <i class="fas fa-check-circle text-blue-400 text-xl"></i>
-                                </div>
-                                <span class="text-xs text-slate-500">Offen</span>
+                                <div class="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center"><i class="fas fa-check-circle text-blue-400 text-xl"></i></div>
                             </div>
                             <div id="stat-open-tasks" class="text-2xl font-bold">--</div>
-                            <div class="text-xs text-slate-500 mt-1">Tasks</div>
+                            <div class="text-xs text-slate-500">Offene Tasks</div>
                         </div>
                         <div class="glass-card p-4 rounded-xl hover-lift">
                             <div class="flex items-center justify-between mb-3">
-                                <div class="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                                    <i class="fas fa-folder text-purple-400 text-xl"></i>
-                                </div>
-                                <span class="text-xs text-slate-500">Aktiv</span>
+                                <div class="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center"><i class="fas fa-folder text-purple-400 text-xl"></i></div>
                             </div>
                             <div id="stat-active-projects" class="text-2xl font-bold">--</div>
-                            <div class="text-xs text-slate-500 mt-1">Projekte</div>
+                            <div class="text-xs text-slate-500">Projekte</div>
                         </div>
                         <div class="glass-card p-4 rounded-xl hover-lift">
                             <div class="flex items-center justify-between mb-3">
-                                <div class="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center">
-                                    <i class="fas fa-exclamation-triangle text-red-400 text-xl"></i>
-                                </div>
-                                <span class="text-xs text-slate-500">Diese Woche</span>
+                                <div class="w-10 h-10 rounded-lg bg-orange-500/20 flex items-center justify-center"><i class="fas fa-clock text-orange-400 text-xl"></i></div>
                             </div>
-                            <div id="stat-deadlines" class="text-2xl font-bold">--</div>
-                            <div class="text-xs text-slate-500 mt-1">Deadlines</div>
+                            <div id="stat-focus-time" class="text-2xl font-bold">--</div>
+                            <div class="text-xs text-slate-500">Focus Time</div>
                         </div>
                         <div class="glass-card p-4 rounded-xl hover-lift">
                             <div class="flex items-center justify-between mb-3">
-                                <div class="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
-                                    <i class="fas fa-chart-line text-green-400 text-xl"></i>
-                                </div>
-                                <span class="text-xs text-slate-500">Fortschritt</span>
+                                <div class="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center"><i class="fas fa-fire text-green-400 text-xl"></i></div>
                             </div>
-                            <div id="stat-progress" class="text-2xl font-bold">--%</div>
-                            <div class="text-xs text-slate-500 mt-1">Erledigt</div>
+                            <div id="stat-habits" class="text-2xl font-bold">--</div>
+                            <div class="text-xs text-slate-500">Habits heute</div>
                         </div>
                     </div>
                     
-                    <div class="grid lg:grid-cols-3 gap-6">
-                        <div class="lg:col-span-2 glass-card rounded-2xl p-6">
-                            <div class="flex items-center justify-between mb-6">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center">
-                                        <i class="fas fa-microchip text-blue-400 text-xl"></i>
-                                    </div>
-                                    <div>
-                                        <h3 class="font-semibold text-slate-100">System Status</h3>
-                                        <p class="text-xs text-slate-500">Live-Monitoring</p>
-                                    </div>
-                                </div>
-                                <span class="flex items-center gap-2 text-xs text-green-400">
-                                    <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
-                                    Live
-                                </span>
+                    <div class="grid lg:grid-cols-2 gap-4">
+                        <div class="glass-card rounded-2xl p-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="font-semibold">Aktive Projekte</h3>
+                                <button onclick="switchTab('projects')" class="text-sm text-blue-400">Alle →</button>
                             </div>
-                            
-                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-                                <div class="p-4 rounded-xl bg-slate-800/50">
-                                    <div class="text-xs text-slate-500 mb-1">CPU Load</div>
-                                    <div id="sys-load" class="text-xl font-mono font-semibold">--</div>
-                                </div>
-                                <div class="p-4 rounded-xl bg-slate-800/50">
-                                    <div class="text-xs text-slate-500 mb-1">Memory</div>
-                                    <div id="sys-memory" class="text-xl font-mono font-semibold">--</div>
-                                </div>
-                                <div class="p-4 rounded-xl bg-slate-800/50">
-                                    <div class="text-xs text-slate-500 mb-1">Disk</div>
-                                    <div id="sys-disk" class="text-xl font-mono font-semibold">--</div>
-                                </div>
-                                <div class="p-4 rounded-xl bg-slate-800/50">
-                                    <div class="text-xs text-slate-500 mb-1">Uptime</div>
-                                    <div id="sys-uptime" class="text-xl font-mono font-semibold">--</div>
-                                </div>
-                            </div>
-                            
-                            <div class="h-48">
-                                <canvas id="system-chart"></canvas>
-                            </div>
+                            <div id="dashboard-projects" class="space-y-3"><div class="skeleton h-16"></div><div class="skeleton h-16"></div></div>
                         </div>
                         
                         <div class="glass-card rounded-2xl p-6">
-                            <div class="flex items-center gap-3 mb-6">
-                                <div class="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center">
-                                    <i class="fas fa-bolt text-purple-400 text-xl"></i>
-                                </div>
-                                <h3 class="font-semibold text-slate-100">Aktivität</h3>
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="font-semibold">Heutige Habits</h3>
+                                <button onclick="switchTab('habits')" class="text-sm text-blue-400">Alle →</button>
                             </div>
-                            <div id="recent-activity" class="space-y-4 max-h-80 overflow-y-auto">
-                                <div class="skeleton h-12"></div>
-                                <div class="skeleton h-12"></div>
-                                <div class="skeleton h-12"></div>
-                            </div>
-                        </div>
-                        
-                        <div class="lg:col-span-2 glass-card rounded-2xl p-6">
-                            <div class="flex items-center justify-between mb-6">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center">
-                                        <i class="fas fa-rocket text-pink-400 text-xl"></i>
-                                    </div>
-                                    <h3 class="font-semibold text-slate-100">Aktive Projekte</h3>
-                                </div>
-                                <button onclick="switchTab('projects')" class="text-sm text-blue-400 hover:text-blue-300">Alle anzeigen →</button>
-                            </div>
-                            <div id="dashboard-projects" class="space-y-4">
-                                <div class="skeleton h-20"></div>
-                                <div class="skeleton h-20"></div>
-                            </div>
-                        </div>
-                        
-                        <div class="glass-card rounded-2xl p-6">
-                            <div class="flex items-center gap-3 mb-6">
-                                <div class="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center">
-                                    <i class="fas fa-calendar-check text-green-400 text-xl"></i>
-                                </div>
-                                <h3 class="font-semibold text-slate-100">Events</h3>
-                            </div>
-                            <div id="dashboard-events" class="space-y-3">
-                                <div class="skeleton h-16"></div>
-                                <div class="skeleton h-16"></div>
-                            </div>
+                            <div id="dashboard-habits" class="space-y-2"><div class="skeleton h-12"></div><div class="skeleton h-12"></div></div>
                         </div>
                     </div>
                 </div>
 
-                <!-- TASKS -->
-                <div id="tab-tasks" class="tab-content hidden space-y-6">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <button onclick="setTaskView('kanban')" id="view-kanban-btn" class="px-4 py-2 rounded-lg text-sm font-medium bg-blue-500 text-white">
-                                <i class="fas fa-columns mr-2"></i>Kanban
-                            </button>
-                            <button onclick="setTaskView('list')" id="view-list-btn" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-white/5">
-                                <i class="fas fa-list mr-2"></i>Liste
-                            </button>
+                <!-- Tasks Tab -->
+                <div id="tab-tasks" class="tab-content hidden space-y-4">
+                    <div class="flex flex-wrap gap-2">
+                        <div class="flex-1 min-w-[200px] relative">
+                            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                            <input type="text" id="task-search" placeholder="Tasks suchen..." oninput="filterTasks()" class="w-full pl-10 pr-4 py-2.5 rounded-lg bg-slate-800 border border-white/5 text-sm">
                         </div>
-                        <div class="flex items-center gap-3">
-                            <div class="relative">
-                                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"></i>
-                                <input type="text" id="task-search" placeholder="Tasks suchen..." oninput="filterTasks()" class="pl-10 pr-4 py-2 rounded-lg bg-slate-800 border border-white/5 text-slate-200 text-sm w-64">
-                            </div>
-                            <select id="task-filter-project" onchange="filterTasks()" class="px-3 py-2 rounded-lg bg-slate-800 border border-white/5 text-slate-200 text-sm">
-                                <option value="">Alle Projekte</option>
-                            </select>
-                            <select id="task-filter-priority" onchange="filterTasks()" class="px-3 py-2 rounded-lg bg-slate-800 border border-white/5 text-slate-200 text-sm">
-                                <option value="">Alle Prioritäten</option>
-                                <option value="1">P1 - Critical</option>
-                                <option value="2">P2 - High</option>
-                                <option value="3">P3 - Medium</option>
-                                <option value="4">P4 - Low</option>
-                            </select>
-                            <button onclick="openTaskModal()" class="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium">
-                                <i class="fas fa-plus mr-1"></i>Neu
-                            </button>
-                        </div>
+                        <select id="task-filter-project" onchange="filterTasks()" class="px-3 py-2.5 rounded-lg bg-slate-800 border border-white/5 text-sm"><option value="">Alle Projekte</option></select>
+                        <button onclick="openTaskModal()" class="px-4 py-2.5 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium"><i class="fas fa-plus mr-1"></i>Neu</button>
                     </div>
                     
                     <div id="kanban-view" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div class="glass-card rounded-xl p-4">
                             <div class="flex items-center justify-between mb-4">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-3 h-3 rounded-full bg-slate-400"></div>
-                                    <span class="font-medium text-slate-200">Todo</span>
-                                    <span id="count-todo" class="px-2 py-0.5 text-xs bg-slate-700 rounded-full text-slate-400">0</span>
-                                </div>
+                                <span class="font-medium text-slate-200">Todo</span>
+                                <span id="count-todo" class="px-2 py-0.5 text-xs bg-slate-700 rounded-full">0</span>
                             </div>
-                            <div id="kanban-todo" class="kanban-column space-y-3"></div>
+                            <div id="kanban-todo" class="kanban-column space-y-3 min-h-[100px]"></div>
                         </div>
                         <div class="glass-card rounded-xl p-4">
                             <div class="flex items-center justify-between mb-4">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-3 h-3 rounded-full bg-blue-400"></div>
-                                    <span class="font-medium text-slate-200">In Progress</span>
-                                    <span id="count-in_progress" class="px-2 py-0.5 text-xs bg-slate-700 rounded-full text-slate-400">0</span>
-                                </div>
+                                <span class="font-medium text-slate-200">In Progress</span>
+                                <span id="count-in_progress" class="px-2 py-0.5 text-xs bg-slate-700 rounded-full">0</span>
                             </div>
-                            <div id="kanban-in_progress" class="kanban-column space-y-3"></div>
+                            <div id="kanban-in_progress" class="kanban-column space-y-3 min-h-[100px]"></div>
                         </div>
                         <div class="glass-card rounded-xl p-4">
                             <div class="flex items-center justify-between mb-4">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-3 h-3 rounded-full bg-green-400"></div>
-                                    <span class="font-medium text-slate-200">Done</span>
-                                    <span id="count-done" class="px-2 py-0.5 text-xs bg-slate-700 rounded-full text-slate-400">0</span>
-                                </div>
+                                <span class="font-medium text-slate-200">Done</span>
+                                <span id="count-done" class="px-2 py-0.5 text-xs bg-slate-700 rounded-full">0</span>
                             </div>
-                            <div id="kanban-done" class="kanban-column space-y-3"></div>
+                            <div id="kanban-done" class="kanban-column space-y-3 min-h-[100px]"></div>
                         </div>
                         <div class="glass-card rounded-xl p-4">
                             <div class="flex items-center justify-between mb-4">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-3 h-3 rounded-full bg-red-400"></div>
-                                    <span class="font-medium text-slate-200">Blocked</span>
-                                    <span id="count-blocked" class="px-2 py-0.5 text-xs bg-slate-700 rounded-full text-slate-400">0</span>
-                                </div>
+                                <span class="font-medium text-slate-200">Blocked</span>
+                                <span id="count-blocked" class="px-2 py-0.5 text-xs bg-slate-700 rounded-full">0</span>
                             </div>
-                            <div id="kanban-blocked" class="kanban-column space-y-3"></div>
+                            <div id="kanban-blocked" class="kanban-column space-y-3 min-h-[100px]"></div>
                         </div>
-                    </div>
-                    
-                    <div id="list-view" class="hidden glass-card rounded-2xl overflow-hidden">
-                        <table class="w-full">
-                            <thead class="bg-slate-800/50 text-left">
-                                <tr>
-                                    <th class="px-4 py-3 text-xs font-medium text-slate-400">Task</th>
-                                    <th class="px-4 py-3 text-xs font-medium text-slate-400">Projekt</th>
-                                    <th class="px-4 py-3 text-xs font-medium text-slate-400">Status</th>
-                                    <th class="px-4 py-3 text-xs font-medium text-slate-400">Priorität</th>
-                                    <th class="px-4 py-3 text-xs font-medium text-slate-400">Deadline</th>
-                                    <th class="px-4 py-3 text-xs font-medium text-slate-400"></th>
-                                </tr>
-                            </thead>
-                            <tbody id="tasks-table-body" class="divide-y divide-white/5"></tbody>
-                        </table>
                     </div>
                 </div>
 
-                <!-- PROJECTS -->
-                <div id="tab-projects" class="tab-content hidden space-y-6">
+                <!-- Habits Tab -->
+                <div id="tab-habits" class="tab-content hidden space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xl font-semibold">Daily Habits</h2>
+                        <button onclick="openHabitModal()" class="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm"><i class="fas fa-plus mr-1"></i>Neu</button>
+                    </div>
+                    <div id="habits-list" class="space-y-3"></div>
+                    
+                    <div class="glass-card rounded-2xl p-6 mt-6">
+                        <h3 class="font-semibold mb-4">Last 30 Days</h3>
+                        <div id="habits-heatmap" class="heatmap"></div>
+                    </div>
+                </div>
+
+                <!-- Goals Tab -->
+                <div id="tab-goals" class="tab-content hidden space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xl font-semibold">Goals & OKRs</h2>
+                        <button onclick="openGoalModal()" class="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm"><i class="fas fa-plus mr-1"></i>Neues Goal</button>
+                    </div>
+                    <div id="goals-list" class="space-y-4"></div>
+                </div>
+
+                <!-- Journal Tab -->
+                <div id="tab-journal" class="tab-content hidden space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xl font-semibold">Daily Journal</h2>
+                        <input type="date" id="journal-date" onchange="loadJournalEntry()" class="px-3 py-2 rounded-lg bg-slate-800 border border-white/5">
+                    </div>
+                    
+                    <div class="glass-card rounded-2xl p-6 space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm text-slate-400 mb-1">Stimmung</label>
+                                <select id="journal-mood" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-white/5">
+                                    <option value="">--</option>
+                                    <option value="great">😊 Great</option>
+                                    <option value="good">🙂 Good</option>
+                                    <option value="okay">😐 Okay</option>
+                                    <option value="bad">😕 Bad</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm text-slate-400 mb-1">Tags</label>
+                                <input type="text" id="journal-tags" placeholder="#meeting #coding" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-white/5">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm text-slate-400 mb-1">Was habe ich heute erledigt?</label>
+                            <textarea id="journal-completed" rows="3" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-white/5 resize-none"></textarea>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm text-slate-400 mb-1">Was plane ich morgen?</label>
+                            <textarea id="journal-planned" rows="3" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-white/5 resize-none"></textarea>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm text-slate-400 mb-1">Blocker/Herausforderungen</label>
+                            <textarea id="journal-blockers" rows="2" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-white/5 resize-none"></textarea>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm text-slate-400 mb-1">Notizen</label>
+                            <textarea id="journal-content" rows="4" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-white/5 resize-none"></textarea>
+                        </div>
+                        
+                        <button onclick="saveJournal()" class="w-full py-3 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-medium">Speichern</button>
+                    </div>
+                </div>
+
+                <div id="tab-projects" class="tab-content hidden space-y-4">
                     <div class="flex items-center justify-between">
                         <h2 class="text-xl font-semibold">Projekte</h2>
-                        <button onclick="openProjectModal()" class="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium">
-                            <i class="fas fa-plus mr-1"></i>Neues Projekt
-                        </button>
+                        <button onclick="openProjectModal()" class="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm"><i class="fas fa-plus mr-1"></i>Neu</button>
                     </div>
                     <div id="projects-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
                 </div>
 
-                <!-- CALENDAR -->
-                <div id="tab-calendar" class="tab-content hidden space-y-6">
+                <div id="tab-calendar" class="tab-content hidden space-y-4">
                     <div class="flex items-center justify-between">
-                        <h2 class="text-xl font-semibold">Kalender</h2>
-                        <div class="flex items-center gap-2">
-                            <button onclick="changeMonth(-1)" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700"><i class="fas fa-chevron-left"></i></button>
-                            <span id="calendar-month" class="text-lg font-medium min-w-[150px] text-center"></span>
-                            <button onclick="changeMonth(1)" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700"><i class="fas fa-chevron-right"></i></button>
-                        </div>
+                        <button onclick="changeMonth(-1)" class="p-2 rounded-lg bg-slate-800"><i class="fas fa-chevron-left"></i></button>
+                        <span id="calendar-month" class="text-lg font-medium"></span>
+                        <button onclick="changeMonth(1)" class="p-2 rounded-lg bg-slate-800"><i class="fas fa-chevron-right"></i></button>
                     </div>
-                    <div class="glass-card rounded-2xl p-6">
+                    <div class="glass-card rounded-2xl p-4">
                         <div class="grid grid-cols-7 gap-1 mb-2 text-center text-xs text-slate-500">
-                            <div>Mo</div><div>Di</div><div>Mi</div><div>Do</div><div>Fr</div><div>Sa</div><div>So</div>
+                            <div>Mo</div><div>Di</div><div>Mi</div><div>Do</div>
+                            <div>Fr</div><div>Sa</div><div>So</div>
                         </div>
                         <div id="calendar-grid" class="calendar-grid"></div>
                     </div>
-                    <div id="calendar-events" class="glass-card rounded-2xl p-6">
-                        <h3 class="font-semibold mb-4">Events</h3>
-                        <div id="selected-day-events" class="space-y-2"></div>
-                    </div>
                 </div>
 
-                <!-- NOTES -->
-                <div id="tab-notes" class="tab-content hidden space-y-6">
+                <div id="tab-notes" class="tab-content hidden space-y-4">
                     <div class="flex items-center justify-between">
                         <h2 class="text-xl font-semibold">Notizen</h2>
-                        <button onclick="openNoteModal()" class="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium">
-                            <i class="fas fa-plus mr-1"></i>Neue Notiz
-                        </button>
+                        <button onclick="openNoteModal()" class="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm"><i class="fas fa-plus mr-1"></i>Neu</button>
                     </div>
-                    <div id="notes-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+                    <div id="notes-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
                 </div>
 
-                <!-- GITHUB -->
-                <div id="tab-github" class="tab-content hidden space-y-6">
-                    <div class="flex items-center justify-between">
-                        <h2 class="text-xl font-semibold">GitHub</h2>
-                        <span id="github-repo-name" class="text-sm text-slate-500"></span>
-                    </div>
-                    <div class="grid lg:grid-cols-2 gap-6">
-                        <div class="glass-card rounded-2xl p-6">
-                            <h3 class="font-semibold mb-4 flex items-center gap-2">
-                                <i class="fas fa-exclamation-circle text-green-400"></i>
-                                Open Issues
-                            </h3>
-                            <div id="github-issues" class="space-y-3"></div>
+                <div id="tab-settings" class="tab-content hidden space-y-4">
+                    <h2 class="text-xl font-semibold">Einstellungen</h2>
+                    <div class="glass-card rounded-2xl p-6 space-y-6">
+                        <div>
+                            <label class="block text-sm text-slate-400 mb-2">Theme</label>
+                            <div class="flex gap-2">
+                                <button onclick="setTheme('light')" class="flex-1 py-2 rounded-lg bg-slate-800">Light</button>
+                                <button onclick="setTheme('dark')" class="flex-1 py-2 rounded-lg bg-slate-800">Dark</button>
+                                <button onclick="setTheme('system')" class="flex-1 py-2 rounded-lg bg-slate-800">System</button>
+                            </div>
                         </div>
-                        <div class="glass-card rounded-2xl p-6">
-                            <h3 class="font-semibold mb-4 flex items-center gap-2">
-                                <i class="fas fa-code-branch text-purple-400"></i>
-                                Pull Requests
-                            </h3>
-                            <div id="github-prs" class="space-y-3"></div>
+                        <div>
+                            <label class="block text-sm text-slate-400 mb-2">Pomodoro (Min)</label>
+                            <input type="number" id="setting-pomodoro" value="25" class="w-full px-3 py-2 rounded-lg bg-slate-800">
                         </div>
-                        <div class="lg:col-span-2 glass-card rounded-2xl p-6">
-                            <h3 class="font-semibold mb-4 flex items-center gap-2">
-                                <i class="fas fa-code-commit text-slate-400"></i>
-                                Recent Commits
-                            </h3>
-                            <div id="github-commits" class="space-y-2"></div>
+                        <div>
+                            <label class="block text-sm text-slate-400 mb-2">Export</label>
+                            <div class="flex gap-2">
+                                <a href="/api/export/tasks" download class="flex-1 py-2 rounded-lg bg-slate-800 text-center text-sm">Tasks JSON</a>
+                                <a href="/api/export/tasks/csv" download class="flex-1 py-2 rounded-lg bg-slate-800 text-center text-sm">Tasks CSV</a>
+                                <a href="/api/export/projects" download class="flex-1 py-2 rounded-lg bg-slate-800 text-center text-sm">Projects</a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -464,54 +360,55 @@
         </main>
     </div>
 
-    <!-- Toast Container -->
+    <nav class="bottom-nav">
+        <button onclick="switchTab('dashboard')" data-tab="dashboard" class="bottom-nav-item active"><i class="fas fa-th-large"></i>Dashboard</button>
+        <button onclick="switchTab('tasks')" data-tab="tasks" class="bottom-nav-item"><i class="fas fa-check-circle"></i>Tasks</button>
+        <button onclick="switchTab('habits')" data-tab="habits" class="bottom-nav-item"><i class="fas fa-fire"></i>Habits</button>
+        <button onclick="switchTab('journal')" data-tab="journal" class="bottom-nav-item"><i class="fas fa-book"></i>Journal</button>
+        <button onclick="switchTab('settings')" data-tab="settings" class="bottom-nav-item"><i class="fas fa-cog"></i>Mehr</button>
+    </nav>
+
+    <button onclick="showQuickAdd()" class="fab"><i class="fas fa-plus"></i></button>
+
     <div id="toast-container" class="toast-container"></div>
 
-    <!-- Note Modal -->
-    <div id="note-modal" class="command-palette" onclick="if(event.target===this)closeNoteModal()">
-        <div class="glass-card w-full max-w-2xl mx-4 rounded-xl overflow-hidden" onclick="event.stopPropagation()">
-            <div class="p-4 border-b border-white/10 flex items-center justify-between">
-                <h3 class="text-lg font-semibold">Neue Notiz</h3>
-                <button onclick="closeNoteModal()" class="text-slate-400 hover:text-slate-200"><i class="fas fa-times"></i></button>
+    <div id="task-modal" class="bottom-sheet" onclick="if(event.target===this)closeTaskModal()">
+        <div class="bottom-sheet-content glass-card p-6" onclick="event.stopPropagation()">
+            <div class="flex items-center justify-between mb-4">
+                <h3 id="task-modal-title" class="text-lg font-semibold">Neuer Task</h3>
+                <button onclick="closeTaskModal()"><i class="fas fa-times"></i></button>
             </div>
-            <form id="note-form" onsubmit="saveNote(event)" class="p-4 space-y-4">
-                <div>
-                    <label class="block text-sm text-slate-400 mb-1">Titel</label>
-                    <input type="text" id="note-title" required class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-white/10 text-slate-200">
+            <form id="task-form" onsubmit="saveTask(event)" class="space-y-4">
+                <input type="hidden" id="task-id">
+                <input type="text" id="task-title" placeholder="Task Titel" required class="w-full px-3 py-3 rounded-lg bg-slate-800 border border-white/5 text-lg">
+                <textarea id="task-description" placeholder="Beschreibung" rows="3" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-white/5"></textarea>
+                <div class="grid grid-cols-2 gap-3">
+                    <select id="task-status" class="px-3 py-2 rounded-lg bg-slate-800">
+                        <option value="todo">Todo</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="done">Done</option>
+                        <option value="blocked">Blocked</option>
+                    </select>
+                    <select id="task-priority" class="px-3 py-2 rounded-lg bg-slate-800">
+                        <option value="1">P1 Critical</option>
+                        <option value="2">P2 High</option>
+                        <option value="3" selected>P3 Medium</option>
+                        <option value="4">P4 Low</option>
+                    </select>
                 </div>
-                <div>
-                    <label class="block text-sm text-slate-400 mb-1">Inhalt (Markdown)</label>
-                    <textarea id="note-content" rows="8" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-white/10 text-slate-200 font-mono text-sm"></textarea>
+                <div class="grid grid-cols-2 gap-3">
+                    <select id="task-project" class="px-3 py-2 rounded-lg bg-slate-800"><option value="">Kein Projekt</option></select>
+                    <input type="date" id="task-due-date" class="px-3 py-2 rounded-lg bg-slate-800">
                 </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm text-slate-400 mb-1">Kategorie</label>
-                        <select id="note-category" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-white/10 text-slate-200">
-                            <option value="ideas">Ideen</option>
-                            <option value="meeting">Meeting</option>
-                            <option value="random">Random</option>
-                            <option value="todo">Todo</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm text-slate-400 mb-1">Farbe</label>
-                        <select id="note-color" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-white/10 text-slate-200">
-                            <option value="yellow">Gelb</option>
-                            <option value="blue">Blau</option>
-                            <option value="green">Grün</option>
-                            <option value="pink">Pink</option>
-                            <option value="purple">Lila</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="flex justify-end gap-3 pt-2">
-                    <button type="button" onclick="closeNoteModal()" class="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200">Abbrechen</button>
-                    <button type="submit" class="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white">Speichern</button>
+                <div class="flex gap-3 pt-2">
+                    <button type="button" onclick="closeTaskModal()" class="flex-1 py-3 rounded-lg bg-slate-700">Abbrechen</button>
+                    <button type="submit" class="flex-1 py-3 rounded-lg bg-blue-500 text-white font-medium">Speichern</button>
                 </div>
             </form>
         </div>
     </div>
 
+    <script>if('serviceWorker'in navigator){navigator.serviceWorker.register('/sw.js').catch(console.error);}</script>
     <script src="app.js"></script>
 </body>
 </html>

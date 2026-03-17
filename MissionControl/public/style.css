@@ -1,6 +1,5 @@
 /**
- * Mission Control PRO - Custom Styles
- * Tailwind CSS is loaded via CDN, this file contains additional custom styles
+ * Mission Control PRO - Mobile + Features Styles
  */
 
 /* Custom animations */
@@ -12,6 +11,11 @@
 @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
+}
+
+@keyframes pulse-ring {
+    0% { transform: scale(0.8); opacity: 0.5; }
+    100% { transform: scale(1.3); opacity: 0; }
 }
 
 .animate-slide-up {
@@ -63,13 +67,6 @@
     height: 100% !important;
 }
 
-/* Mobile optimizations */
-@media (max-width: 768px) {
-    .glass-card {
-        backdrop-filter: blur(10px);
-    }
-}
-
 /* Prevent text selection on interactive elements */
 .kanban-card, .custom-checkbox, button {
     user-select: none;
@@ -106,4 +103,24 @@ button:disabled {
 
 .toast-container {
     z-index: 10000;
+}
+
+/* Mobile momentum scrolling */
+.scroll-momentum {
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent pull-to-refresh on mobile Chrome */
+body {
+    overscroll-behavior-y: none;
+}
+
+/* Safe area insets for notched devices */
+@supports (padding-top: env(safe-area-inset-top)) {
+    .safe-area-top {
+        padding-top: env(safe-area-inset-top);
+    }
+    .safe-area-bottom {
+        padding-bottom: env(safe-area-inset-bottom);
+    }
 }
