@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Therapeuten MVP Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f7;
+            color: #1d1d1f;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 16px;
+            margin-bottom: 24px;
+        }
+        header h1 { font-size: 2rem; margin-bottom: 8px; }
+        header p { opacity: 0.9; }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+        .card h2 {
+            font-size: 1.1rem;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .stat {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .stat:last-child { border-bottom: none; }
+        .stat-value {
+            font-weight: 600;
+            font-size: 1.25rem;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            background: #e5e5e7;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+        
+        .task-list {
+            list-style: none;
+        }
+        .task-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .task-list li:last-child { border-bottom: none; }
+        .checkbox {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #c7c7cc;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .checkbox.done {
+            background: #34c759;
+            border-color: #34c759;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .status-todo { background: #fff3cd; color: #856404; }
+        .status-progress { background: #cce5ff; color: #004085; }
+        .status-done { background: #d4edda; color: #155724; }
+        
+        .priority-high { color: #ff3b30; }
+        .priority-medium { color: #ff9500; }
+        .priority-low { color: #34c759; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🩺 Therapeuten MVP Dashboard</h1>
+            <p>Pipeline, Compliance & MVP Fortschritt</p>
+        </header>
+        
+        <div class="grid">
+            <!-- Pipeline Übersicht -->
+            <div class="card">
+                <h2>📊 Pipeline Status</h2>
+                <div class="stat">
+                    <span>Interviews geplant</span>
+                    <span class="stat-value">0/15</span>
+                </div>
+                <div class="stat">
+                    <span>Interviews geführt</span>
+                    <span class="stat-value">0</span>
+                </div>
+                <div class="stat">
+                    <span>Pilot-Interessenten</span>
+                    <span class="stat-value">0</span>
+                </div>
+                <div class="stat">
+                    <span>Verpflichtet</span>
+                    <span class="stat-value">0</span>
+                </div>
+            </div>
+            
+            <!-- MVP Fortschritt -->
+            <div class="card">
+                <h2>🚀 MVP Progress</h2>
+                <div class="stat">
+                    <span>Gesamtfortschritt</span>
+                    <span class="stat-value">5%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 5%"></div>
+                </div>
+                <div style="margin-top: 16px;">
+                    <div class="stat">
+                        <span>Interview-Leitfaden</span>
+                        <span class="status-badge status-todo">Offen</span>
+                    </div>
+                    <div class="stat">
+                        <span>Compliance Baseline</span>
+                        <span class="status-badge status-todo">Offen</span>
+                    </div>
+                    <div class="stat">
+                        <span>MVP Spezifikation</span>
+                        <span class="status-badge status-todo">Offen</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Heutige Tasks -->
+            <div class="card">
+                <h2>📅 Heute (20.03.2026)</h2>
+                <ul class="task-list">
+                    <li>
+                        <span class="checkbox"></span>
+                        <span>Interview-Leitfaden v1</span>
+                        <span class="priority-high">●</span>
+                    </li>
+                    <li>
+                        <span class="checkbox"></span>
+                        <span>Compliance Baseline</span>
+                        <span class="priority-high">●</span>
+                    </li>
+                    <li>
+                        <span class="checkbox"></span>
+                        <span>MVP-Definition</span>
+                        <span class="priority-high">●</span>
+                    </li>
+                </ul>
+            </div>
+            
+            <!-- Compliance Status -->
+            <div class="card">
+                <h2>🔒 Compliance Check</h2>
+                <div class="stat">
+                    <span>DSG/DSGVO Checkliste</span>
+                    <span class="status-badge status-todo">Offen</span>
+                </div>
+                <div class="stat">
+                    <span>CH-Hosting Prinzipien</span>
+                    <span class="status-badge status-todo">Offen</span>
+                </div>
+                <div class="stat">
+                    <span>Datenfluss-Dokumentation</span>
+                    <span class="status-badge status-todo">Offen</span>
+                </div>
+                <div class="stat">
+                    <span>Aufbewahrungskonzept</span>
+                    <span class="status-badge status-todo">Offen</span>
+                </div>
+            </div>
+            
+            <!-- Inbox / Backlog -->
+            <div class="card">
+                <h2>📥 Backlog</h2>
+                <ul class="task-list">
+                    <li>
+                        <span class="checkbox"></span>
+                        <span>10-15 Therapeuten interviewen</span>
+                    </li>
+                    <li>
+                        <span class="checkbox"></span>
+                        <span>cal.com Self-Hosting evaluieren</span>
+                    </li>
+                    <li>
+                        <span class="checkbox"></span>
+                        <span>CH-Abrechnungs-Workflows</span>
+                    </li>
+                    <li>
+                        <span class="checkbox"></span>
+                        <span>Patientenakte MVP Scope</span>
+                    </li>
+                </ul>
+            </div>
+            
+            <!-- Quick Stats -->
+            <div class="card">
+                <h2>⚡ Quick Stats</h2>
+                <div class="stat">
+                    <span>Letzte Aktivität</span>
+                    <span class="stat-value" style="font-size: 0.9rem;">20.03. 08:45</span>
+                </div>
+                <div class="stat">
+                    <span>Offene Tasks</span>
+                    <span class="stat-value">7</span>
+                </div>
+                <div class="stat">
+                    <span>Dringend</span>
+                    <span class="stat-value priority-high">3</span>
+                </div>
+                <div class="stat">
+                    <span>Nächster Meilenstein</span>
+                    <span class="stat-value" style="font-size: 0.9rem;">Interview-Leitfaden</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

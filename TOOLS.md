@@ -37,4 +37,18 @@ Skills are shared. Your setup is yours. Keeping them apart means you can update 
 
 ---
 
+### 🎙️ Audio Transkription (whisper.cpp)
+
+**Binary:** `/usr/local/bin/whisper`
+**Modell:** `~/.local/share/whisper/ggml-base.bin` (147 MB, de/en)
+**Workflow:** OGG → ffmpeg (16000Hz WAV) → whisper
+
+```bash
+# Konvertierung + Transkription
+ffmpeg -i input.ogg -ar 16000 -ac 1 -c:a pcm_s16le /tmp/audio.wav
+whisper /tmp/audio.wav -m ~/.local/share/whisper/ggml-base.bin --language de -np
+```
+
+---
+
 Add whatever helps you do your job. This is your cheat sheet.
